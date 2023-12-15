@@ -1,20 +1,16 @@
 from quine_mccluskey import reduce_qm, print_vector
+from MintermSet import MintermSet
 
-from tensor import Tensor
 
 fn main():
+    alias T = DType.uint64
+    var minterms = MintermSet[T]()
+    minterms.add(0b11100111)
+    minterms.add(0b11100001)
+    minterms.add(0b01100001)
+    minterms.add(0b00100001)
 
-    alias T = DType.uint32
-    var minterms = DynamicVector[SIMD[T, 1]](4)
-    minterms.push_back(0b11100111)
-    minterms.push_back(0b11100001)
-    minterms.push_back(0b01100001)
-    minterms.push_back(0b00100001)
+    print("before:\n" + str(minterms))
 
-    print("before:")
-    print_vector[T](minterms)
-
-    let x = reduce_qm[T](minterms)
-
-    print("after:")
-    print_vector[T](x)
+    let x = reduce_qm(minterms)
+    print("after:\n" + str(minterms))

@@ -1,8 +1,7 @@
-from utils.vector import DynamicVector
-from tensor import Tensor
+from utils.vector import DynamicVector, InlinedFixedVector
 from vector_tools import equal_vector, print_vector
 from MintermSet import MintermSet
-
+from math.bit import ctpop
 
 #    template <bool SHOW_INFO, typename T>
 #    [[nodiscard]] std::vector<T> reduce_minterms(const std::vector<T>& minterms)
@@ -105,39 +104,104 @@ from MintermSet import MintermSet
 #        return result;
 #    }
 
-fn reduce_minterms[T: DType, SHOW_INFO: Bool](minterms: DynamicVector[SIMD[T, 1]]) ->  DynamicVector[SIMD[T, 1]]:
-    var total_comparisons: UInt64 = 0;
+struct Checked:
+    var data: InlinedFixedVector[DTypePointer[DType.bool], 32]
 
-    var set: MintermSet = MintermSet()
-    for i in range(minterms.size):
-        let x : SIMD[T, 1] = minterms.__getitem__(i)
-        set.add(x.cast[DType.uint32]())
+    fn __init__(inout self):
+        self.data = InlinedFixedVector[DTypePointer[DType.bool], 32](32)
 
-#        MintermSet set;
-#        set.add(minterms);
+    fn at(self, pos: Int) -> DTypePointer[DType.bool]:
+        return self.data.__getitem__(pos)
 
-#        std::set<T> new_minterms;
-
-#        std::vector<std::vector<char>> checked_X;
-#        const long long max_bit_count = static_cast<long long>(set.get_max_bit_count());
-#        //std::cout << "max_bit_count=" << max_bit_count << std::endl;
-
-#        for (long long bit_count = 0; bit_count <= max_bit_count; ++bit_count)
-#        {
-#            const int max = static_cast<int>(set.get(bit_count).size());
-#            //std::cout << "bit_count = " << bit_count << "; max = " << max << std::endl;
-#            checked_X.push_back(std::vector<char>(max, false));
-#        }
+    fn init(inout self, bit_count: Int, size: Int):
+        self.data[bit_count] = DTypePointer[DType.bool].aligned_alloc(8, size)
+        for i in range(size):
+            self.data[bit_count][i] = False
 
 
-    return minterms
+fn is_gray_code[T: DType](a: SIMD[T, 1], b: SIMD[T, 1]) -> Bool:
+    return ctpop(a ^ b) == 1
+
+fn replace_complements[T: DType](a: SIMD[T, 1], b: SIMD[T, 1]) -> SIMD[T, 1]:
+    let neq = a ^ b
+    return a | neq | (neq << 32)
+
+fn minterms_to_string[T: DType](v: DynamicVector[SIMD[T, 1]]) -> String:
+    var result: String = ""
+    for i in range(math.min(len(v), 10)):
+        let x = v[i]
+        for j in range(32, 0):
+            if ((x >> j) & 1) == 1:
+                result += "1"
+            else:
+                result += "0"
+        result += " "
+    return result
+
+fn reduce_minterms[T: DType, SHOW_INFO: Bool](minterms: MintermSet[T]) -> MintermSet[T]:
+    var total_comparisons: UInt64 = 0
+    var set = minterms
+    var new_minterms = MintermSet[T]()
+    var checked_X = Checked()
+    let max_bit_count = set.max_bit_count.to_int()
+
+    for bit_count in range(max_bit_count):
+        let max: Int = len(set.get(bit_count))
+        #print("bit_count = "+ str(bit_count)+ "; max = " + str(max) +"\n")
+        checked_X.init(bit_count, max)
+
+    for bit_count in range(max_bit_count):
+        let minterms_i = set.get(bit_count)
+        let minterms_j = set.get(bit_count + 1)
+        let max_i = len(minterms_i)
+        let max_j = len(minterms_j)
+
+        total_comparisons += max_i * max_j
+        #print("max_i = " + str(max_i) + "; max_j = " + str(max_j) + "; total comparisons = " + str(total_comparisons) + "\n")
+
+        if True:
+            print("minterms_i: " + minterms_to_string[T](minterms_i))
+            print("minterms_j: " + minterms_to_string[T](minterms_j))
+            #print("\n\n")
+            #print("minterms_i: " + minterms_to_string(minterms_i) + "\n")
+
+        let checked_i = checked_X.at(bit_count)
+        let checked_j = checked_X.at(bit_count + 1)
+
+        for i in range(max_i):
+            let term_i = minterms_i[i]
+
+            for j in range(max_j):
+                let term_j = minterms_j[j]
+
+                if is_gray_code(term_i, term_j):
+                    checked_i[i] = True
+                    checked_j[j] = True
+                    new_minterms.add(replace_complements[T](term_i, term_j))
+
+    @parameter
+    if SHOW_INFO:
+        print("total_comparisons = " + str(total_comparisons))
+
+    var result = new_minterms
+    
+    for bit_count in range(max_bit_count+1):
+        let checked_i = checked_X.at(bit_count)
+        let minterms_i = set.get(bit_count)
+
+        for i in range(len(minterms_i)):
+            if checked_i[i]:
+                result.add(minterms_i[i])
 
 
-fn reduce_qm[T: DType](minterms_input: DynamicVector[SIMD[T, 1]]) -> DynamicVector[SIMD[T, 1]]:
+    return result
+
+
+fn reduce_qm[T: DType](minterms_input: MintermSet[T]) -> MintermSet[T]:
     alias SHOW_INFO: Bool = True
 
     var minterms = minterms_input
-    var next_minterms = DynamicVector[SIMD[T, 1]]()
+    var next_minterms = MintermSet[T]()
 
     var iteration: Int = 0
     var fixed_point: Bool = False
@@ -147,13 +211,12 @@ fn reduce_qm[T: DType](minterms_input: DynamicVector[SIMD[T, 1]]) -> DynamicVect
 
         if True:
             print("Iteration ", iteration)
-            print_vector[T](next_minterms)
+            print(next_minterms)
             iteration += 1
 
-        if (equal_vector[T](minterms, next_minterms)): # both are sorted, minterms is not sorted the first iteration, but that is ok.
-            fixed_point = True
+        # both are sorted, minterms is not sorted the first iteration, but that is ok.
+        fixed_point = minterms == next_minterms
+        minterms = next_minterms
 
-        minterms = next_minterms;
-
-    #return petrick_simplify(minterms, minterms_input)
+    # return petrick_simplify(minterms, minterms_input)
     return next_minterms
