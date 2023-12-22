@@ -159,10 +159,10 @@ fn minterms_to_string[T: DType](v: DynamicVector[SIMD[T, 1]]) -> String:
 
 fn reduce_minterms[T: DType, SHOW_INFO: Bool](minterms: MintermSet[T]) -> MintermSet[T]:
     var total_comparisons: UInt64 = 0
-    var set = minterms
+    let set = minterms
     var new_minterms = MintermSet[T]()
     var checked_X = Checked()
-    let max_bit_count = set.max_bit_count.to_int()
+    let max_bit_count = set.max_bit_count
 
     for bit_count in range(max_bit_count):
         let max: Int = len(set.get(bit_count))

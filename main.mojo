@@ -1,4 +1,4 @@
-from quine_mccluskey import reduce_qm, print_vector
+from quine_mccluskey import reduce_qm
 from MintermSet import MintermSet
 from TruthTable import TruthTable
 
@@ -24,7 +24,11 @@ fn truth_table_test():
     tt.set_true(0b01100001)
     tt.set_true(0b00100001)
 
-    print(str(tt))
+    print(tt)
+    tt.sort()
+    print(tt)
+    tt.minimize()
+    print(tt)
 
 
 fn main():
