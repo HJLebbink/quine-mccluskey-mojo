@@ -1,4 +1,4 @@
-from utils.vector import InlinedFixedVector, DynamicVector
+from collections.vector import InlinedFixedVector, DynamicVector
 from math.bit import ctpop
 
 alias N = 32
@@ -134,7 +134,6 @@ struct MintermSet[T2: DType](Copyable, Movable, Stringable, Sized):
         self.data30.__copyinit__(existing.data30)
         self.data31.__copyinit__(existing.data31)
         self.data32 = existing.data32
-
 
     # trait Movable
     fn __moveinit__(inout self: Self, owned existing: Self):
@@ -343,5 +342,5 @@ struct MintermSet[T2: DType](Copyable, Movable, Stringable, Sized):
                 tmp[0] = 0
                 return tmp
         else:
-            print("ERROR MintermSet.get: n_bits_set="+str(n_bits_set))
+            print("ERROR MintermSet.get: n_bits_set=" + str(n_bits_set))
             return DynamicVector[SIMD[T2, 1]](0)

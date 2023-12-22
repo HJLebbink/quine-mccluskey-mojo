@@ -1,4 +1,4 @@
-from utils.vector import DynamicVector
+from collections.vector import DynamicVector
 
 
 fn print_vector[T: DType](a: DynamicVector[SIMD[T, 1]]):

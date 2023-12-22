@@ -1,4 +1,4 @@
-from utils.vector import DynamicVector, InlinedFixedVector
+from collections.vector import DynamicVector, InlinedFixedVector
 from vector_tools import equal_vector, print_vector
 from MintermSet import MintermSet
 from math.bit import ctpop
@@ -104,6 +104,7 @@ from math.bit import ctpop
 #        return result;
 #    }
 
+
 struct Checked:
     var data: InlinedFixedVector[DTypePointer[DType.bool], 32]
 
@@ -119,12 +120,29 @@ struct Checked:
             self.data[bit_count][i] = False
 
 
+struct MySet[T: DType]:
+    var data: DynamicVector[SIMD[T, 1]]
+    var is_sorted: Bool
+
+    fn contains(self, v: SIMD[T, 1]) -> Bool:
+        for i in range(len(self.data)):
+            if self.data[i] == v:
+                return True
+        return False
+
+    fn add(inout self, v: SIMD[T, 1]):
+        if not self.contains(v):
+            self.data.push_back(v)
+
+
 fn is_gray_code[T: DType](a: SIMD[T, 1], b: SIMD[T, 1]) -> Bool:
     return ctpop(a ^ b) == 1
+
 
 fn replace_complements[T: DType](a: SIMD[T, 1], b: SIMD[T, 1]) -> SIMD[T, 1]:
     let neq = a ^ b
     return a | neq | (neq << 32)
+
 
 fn minterms_to_string[T: DType](v: DynamicVector[SIMD[T, 1]]) -> String:
     var result: String = ""
@@ -138,6 +156,7 @@ fn minterms_to_string[T: DType](v: DynamicVector[SIMD[T, 1]]) -> String:
         result += " "
     return result
 
+
 fn reduce_minterms[T: DType, SHOW_INFO: Bool](minterms: MintermSet[T]) -> MintermSet[T]:
     var total_comparisons: UInt64 = 0
     var set = minterms
@@ -147,7 +166,7 @@ fn reduce_minterms[T: DType, SHOW_INFO: Bool](minterms: MintermSet[T]) -> Minter
 
     for bit_count in range(max_bit_count):
         let max: Int = len(set.get(bit_count))
-        #print("bit_count = "+ str(bit_count)+ "; max = " + str(max) +"\n")
+        # print("bit_count = "+ str(bit_count)+ "; max = " + str(max) +"\n")
         checked_X.init(bit_count, max)
 
     for bit_count in range(max_bit_count):
@@ -157,13 +176,13 @@ fn reduce_minterms[T: DType, SHOW_INFO: Bool](minterms: MintermSet[T]) -> Minter
         let max_j = len(minterms_j)
 
         total_comparisons += max_i * max_j
-        #print("max_i = " + str(max_i) + "; max_j = " + str(max_j) + "; total comparisons = " + str(total_comparisons) + "\n")
+        # print("max_i = " + str(max_i) + "; max_j = " + str(max_j) + "; total comparisons = " + str(total_comparisons) + "\n")
 
         if True:
             print("minterms_i: " + minterms_to_string[T](minterms_i))
             print("minterms_j: " + minterms_to_string[T](minterms_j))
-            #print("\n\n")
-            #print("minterms_i: " + minterms_to_string(minterms_i) + "\n")
+            # print("\n\n")
+            # print("minterms_i: " + minterms_to_string(minterms_i) + "\n")
 
         let checked_i = checked_X.at(bit_count)
         let checked_j = checked_X.at(bit_count + 1)
@@ -184,15 +203,14 @@ fn reduce_minterms[T: DType, SHOW_INFO: Bool](minterms: MintermSet[T]) -> Minter
         print("total_comparisons = " + str(total_comparisons))
 
     var result = new_minterms
-    
-    for bit_count in range(max_bit_count+1):
+
+    for bit_count in range(max_bit_count + 1):
         let checked_i = checked_X.at(bit_count)
         let minterms_i = set.get(bit_count)
 
         for i in range(len(minterms_i)):
             if checked_i[i]:
                 result.add(minterms_i[i])
-
 
     return result
 
