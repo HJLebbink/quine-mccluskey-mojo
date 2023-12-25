@@ -3,9 +3,9 @@ from algorithm.sort import sort
 
 from quine_mccluskey import reduce_qm
 from MintermSet import MintermSet
+from tools import get_bit, PrintType
 
-
-struct TruthTable[bit_width: Int](Stringable):
+struct TruthTable[bit_width: Int, has_unknown: Bool = True](Stringable):
     alias MinTermType: DType = Self.getMinTermType[bit_width]()
 
     var data: DynamicVector[SIMD[Self.MinTermType, 1]]
@@ -36,11 +36,11 @@ struct TruthTable[bit_width: Int](Stringable):
     @always_inline("nodebug")
     fn get_value(self, idx: Int) -> Int:
         @parameter
-        if bit_width == 8:
+        if bit_width <= 8:
             return (self.data[idx] & 0xFF).to_int()
-        elif bit_width == 16:
+        elif bit_width <= 16:
             return (self.data[idx] & 0xFFFF).to_int()
-        elif bit_width == 32:
+        elif bit_width <= 32:
             return (self.data[idx] & 0xFFFF_FFFF).to_int()
         else:
             print("Not implemented yet")
@@ -92,37 +92,38 @@ struct TruthTable[bit_width: Int](Stringable):
             return
         else:
             self.sort()
-            let mts1 = self.create_MintermSet()
-            let mts2 = reduce_qm(mts1)
+            let mts2 = reduce_qm(self.create_MintermSet())
+            print(mts2)
             self.is_minimized = True
 
     # trait Stringable
     @always_inline("nodebug")
     fn __str__(self) -> String:
-        var result: String =
+        let result: String =
             "is_sorted = " + str(self.is_sorted) +
             "; is_minimized = " + str(self.is_minimized) + "; data = \n"
-        for i in range(len(self.data)):
-            result += Self.MinTerm2String(self.data[i]) + "\n"
+        return result + self.to_string[PrintType.BIN]()
+
+    fn to_string[t: PrintType](self) -> String:
+        var result: String = ""
+        @parameter
+        if t == PrintType.BIN:
+            for i in range(len(self.data)):
+                let v = self.data[i]
+                for j in range(bit_width):
+                    let pos = (bit_width - j)-1
+                    if tools.get_bit(v, pos + bit_width):
+                        result += "X"
+                    elif tools.get_bit(v, pos):
+                        result += "1"
+                    else:
+                        result += "0"
+                result += "\n"
+        else: 
+            result+= "Not implemented yet" #TODO
+
         return result
 
 
     fn print_blif(self) -> String:
         return "TODO"
-
-    @staticmethod
-    fn get_bit[T: DType](v: SIMD[T, 1], pos: Int) -> Bool:
-        return ((v >> pos) & 1) == 1
-
-    @staticmethod
-    @always_inline("nodebug")
-    fn MinTerm2String(v: SIMD[Self.MinTermType, 1]) -> String:
-        var result: String = ""
-        for i in range(bit_width):
-            if Self.get_bit(v, i + bit_width):
-                result += "X"
-            elif Self.get_bit(v, i):
-                result += "1"
-            else:
-                result += "0"
-        return result

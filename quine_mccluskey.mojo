@@ -3,6 +3,8 @@ from vector_tools import equal_vector, print_vector
 from MintermSet import MintermSet
 from math.bit import ctpop
 
+from tools import PrintType
+
 #    template <bool SHOW_INFO, typename T>
 #    [[nodiscard]] std::vector<T> reduce_minterms(const std::vector<T>& minterms)
 #    {
@@ -105,6 +107,13 @@ from math.bit import ctpop
 #    }
 
 
+fn crash():
+    let x = DynamicVector[Int](0)
+    let y = x[1000000]
+    print(y)
+
+
+
 struct Checked:
     var data: InlinedFixedVector[DTypePointer[DType.bool], 32]
 
@@ -144,11 +153,12 @@ fn replace_complements[T: DType](a: SIMD[T, 1], b: SIMD[T, 1]) -> SIMD[T, 1]:
     return a | neq | (neq << 32)
 
 
-fn minterms_to_string[T: DType](v: DynamicVector[SIMD[T, 1]]) -> String:
+fn minterms_to_string[T: DType, bit_width: Int](v: DynamicVector[SIMD[T, 1]], cap: Int) -> String:
     var result: String = ""
-    for i in range(math.min(len(v), 10)):
+    let x = math.min(len(v), cap)
+    for i in range(x):
         let x = v[i]
-        for j in range(32, 0):
+        for j in range(bit_width-1, -1, -1):
             if ((x >> j) & 1) == 1:
                 result += "1"
             else:
@@ -164,9 +174,11 @@ fn reduce_minterms[T: DType, SHOW_INFO: Bool](minterms: MintermSet[T]) -> Minter
     var checked_X = Checked()
     let max_bit_count = set.max_bit_count
 
-    for bit_count in range(max_bit_count):
+    print("INFO: 491ff4b6: max_bit_count=" + str(max_bit_count))
+
+    for bit_count in range(max_bit_count+1):
         let max: Int = len(set.get(bit_count))
-        # print("bit_count = "+ str(bit_count)+ "; max = " + str(max) +"\n")
+        print("INFO: f6241b1f: bit_count = " + str(bit_count) + "; max = " + str(max))
         checked_X.init(bit_count, max)
 
     for bit_count in range(max_bit_count):
@@ -176,11 +188,11 @@ fn reduce_minterms[T: DType, SHOW_INFO: Bool](minterms: MintermSet[T]) -> Minter
         let max_j = len(minterms_j)
 
         total_comparisons += max_i * max_j
-        # print("max_i = " + str(max_i) + "; max_j = " + str(max_j) + "; total comparisons = " + str(total_comparisons) + "\n")
+        print("INFO: 413d6ad8: max_i = " + str(max_i) + "; max_j = " + str(max_j) + "; total comparisons = " + str(total_comparisons))
 
         if True:
-            print("minterms_i: " + minterms_to_string[T](minterms_i))
-            print("minterms_j: " + minterms_to_string[T](minterms_j))
+            print("INFO: 5fa644ad: minterms_i: " + minterms_to_string[T, 3](minterms_i, 10))
+            print("INFO: 84923df6: minterms_j: " + minterms_to_string[T, 3](minterms_j, 10))
             # print("\n\n")
             # print("minterms_i: " + minterms_to_string(minterms_i) + "\n")
 
@@ -200,7 +212,7 @@ fn reduce_minterms[T: DType, SHOW_INFO: Bool](minterms: MintermSet[T]) -> Minter
 
     @parameter
     if SHOW_INFO:
-        print("total_comparisons = " + str(total_comparisons))
+        print("INFO: 393bb38d: total_comparisons = " + str(total_comparisons))
 
     var result = new_minterms
 
@@ -228,12 +240,17 @@ fn reduce_qm[T: DType](minterms_input: MintermSet[T]) -> MintermSet[T]:
         next_minterms = reduce_minterms[T, SHOW_INFO](minterms)
 
         if True:
-            print("Iteration ", iteration)
-            print(next_minterms)
+            print("INFO: 361a49a4: reduce_qm: iteration " + str(iteration) + "; minterms " + len(minterms) + "; next minterms " + len(next_minterms))
+            print("INFO: 49ecfd1e: minterms     =" + minterms.to_string[PrintType.BIN](3))
+            print("INFO: ed11b7c0: next_minterms=" + next_minterms.to_string[PrintType.BIN](3))
             iteration += 1
 
         # both are sorted, minterms is not sorted the first iteration, but that is ok.
         fixed_point = minterms == next_minterms
+        print("INFO: ada1cdf5: fixed_point="+str(fixed_point))
+        
+        crash()
+        
         minterms = next_minterms
 
     # return petrick_simplify(minterms, minterms_input)
