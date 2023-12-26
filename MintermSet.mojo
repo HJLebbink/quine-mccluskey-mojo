@@ -2,41 +2,40 @@ from collections.vector import DynamicVector
 from math.bit import ctpop
 from algorithm.sort import sort
 
-from tools import get_bit, PrintType
+from tools import get_bit, PrintType, minterms_to_string, minterm_to_string
 
-struct MintermSet[T2: DType](CollectionElement, Sized, Stringable):
-    alias Q = DynamicVector[SIMD[T2, 1]]
-    alias N = 32 # number of bits in a minterm
+struct MintermSet[T: DType, bit_width: Int](CollectionElement, Sized, Stringable):
+    alias Q = DynamicVector[SIMD[T, 1]]
 
     var n_elements: Int
     var max_bit_count: Int
     var is_sorted: Bool
-    var data : DynamicVector[Self.Q]
+    var data: DynamicVector[Self.Q]
 
     fn __init__(inout self: Self):
         self.n_elements = 0
         self.max_bit_count = 0
         self.is_sorted = True
-        self.data = DynamicVector[Self.Q](Self.N)
-        for i in range(Self.N):
+        self.data = DynamicVector[Self.Q](bit_width)
+        for i in range(bit_width):
             self.data.push_back(Self.Q())
 
     fn __eq__(self: Self, other: Self) -> Bool:
         if not(self.is_sorted) | not(other.is_sorted):
-            print("ERROR MintermSet: equality test: self or other is not sorted")
+            #print("ERROR MintermSet: equality test: self or other is not sorted")
             return False
         if len(self) != len(other):
-            print("MintermSet eq: returns False (A)")
+            #print("MintermSet eq: returns False (A)")
             return False
-        for i in range(Self.N):
+        for i in range(bit_width):
             if self.data[i].size != other.data[i].size:
-                print("MintermSet eq: returns False (B)" + str(i))
+                #print("MintermSet eq: returns False (B)" + str(i))
                 return False
-        for i in range(Self.N):
+        for i in range(bit_width):
             if not(Self.equal(self.data[i], other.data[i])):
-                print("MintermSet eq: returns False (C)" + str(i))
+                #print("MintermSet eq: returns False (C)" + str(i))
                 return False
-        print("MintermSet eq: returns True (D)")
+        #print("MintermSet eq: returns True (D)")
         return True
 
     @staticmethod
@@ -66,39 +65,23 @@ struct MintermSet[T2: DType](CollectionElement, Sized, Stringable):
 
     # trait Stringable
     fn __str__(self) -> String:
-        return self.to_string[PrintType.DEC](Self.N)
+        return self.to_string[PrintType.DEC](bit_width)
 
-    fn to_string[t: PrintType](self, number_vars: Int) -> String:
+    fn to_string[P: PrintType](self, number_vars: Int) -> String:
         var result: String = ""
-        for i in range(Self.N):
-            let s = self.data[i].size
-            for j in range(s):
-                let v = self.data[i][j]
-                @parameter
-                if t == PrintType.BIN:
-                    for k in range(number_vars):
-                        let pos = (number_vars - k)-1
-                        #print("pos "+str(pos))
-                        if tools.get_bit(v, pos + Self.N):
-                            result += "X"
-                        elif tools.get_bit(v, pos):
-                            result += "1"
-                        else:
-                            result += "0"
-                else:
-                    result += "ERROR"
-                result += " "
+        for i in range(bit_width):
+            result += minterms_to_string[T, P](self.data[i], number_vars)
         return result
-
 
     fn sort(inout self):
         if self.is_sorted:
             return
-        for i in range(Self.N):
-            sort[T2](self.data[i])
+        for i in range(bit_width):
+            sort[T](self.data[i])
         self.is_sorted = True
 
-    fn add(inout self, value: SIMD[T2, 1], check_duplicate: Bool = True):
+    fn add[check_duplicate: Bool = True](inout self, value: SIMD[T, 1]):
+        print("INFO: 7bd7968f: adding value " +str(value) + "=" + minterm_to_string[T, PrintType.BIN](value, 3))
         let n_bits_set = ctpop(value).to_int()
         self.n_elements += 1
 

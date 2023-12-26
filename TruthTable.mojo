@@ -81,19 +81,16 @@ struct TruthTable[bit_width: Int, has_unknown: Bool = True](Stringable):
             sort[Self.MinTermType](self.data)
             self.is_sorted = True
 
-    fn create_MintermSet(self) -> MintermSet[DType.uint32]:
-        var result = MintermSet[DType.uint32]()
-        for i in range(len(self.data)):
-            result.add(self.get_value(i))
-        return result
-
     fn minimize(inout self):
         if self.is_minimized:
             return
         else:
             self.sort()
-            let mts2 = reduce_qm(self.create_MintermSet())
-            print(mts2)
+
+            # do the reducing
+            self.data = reduce_qm[bit_width, Self.MinTermType](self.data)
+
+            # remember that we are sorted
             self.is_minimized = True
 
     # trait Stringable
@@ -119,7 +116,7 @@ struct TruthTable[bit_width: Int, has_unknown: Bool = True](Stringable):
                     else:
                         result += "0"
                 result += "\n"
-        else: 
+        else:
             result+= "Not implemented yet" #TODO
 
         return result

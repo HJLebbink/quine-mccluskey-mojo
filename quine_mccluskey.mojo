@@ -1,117 +1,17 @@
 from collections.vector import DynamicVector, InlinedFixedVector
-from vector_tools import equal_vector, print_vector
-from MintermSet import MintermSet
 from math.bit import ctpop
 
-from tools import PrintType
-
-#    template <bool SHOW_INFO, typename T>
-#    [[nodiscard]] std::vector<T> reduce_minterms(const std::vector<T>& minterms)
-#    {
-#        long long total_comparisons = 0;
-
-#        MintermSet set;
-#        set.add(minterms);
-
-#        std::set<T> new_minterms;
-
-#        std::vector<std::vector<char>> checked_X;
-#        const long long max_bit_count = static_cast<long long>(set.get_max_bit_count());
-#        //std::cout << "max_bit_count=" << max_bit_count << std::endl;
-
-#        for (long long bit_count = 0; bit_count <= max_bit_count; ++bit_count)
-#        {
-#            const int max = static_cast<int>(set.get(bit_count).size());
-#            //std::cout << "bit_count = " << bit_count << "; max = " << max << std::endl;
-#            checked_X.push_back(std::vector<char>(max, false));
-#        }
-
-#        for (long long bit_count = 0; bit_count < max_bit_count; ++bit_count)
-#        {
-#            const std::vector<T>& minterms_i = set.get(bit_count);
-#            const std::vector<T>& minterms_j = set.get(bit_count + 1);
-#            const int max_i = static_cast<int>(minterms_i.size());
-#            const int max_j = static_cast<int>(minterms_j.size());
-
-#            total_comparisons += (static_cast<long long>(max_i) * static_cast<long long>(max_j));
-
-#            // std::cout << "max_i = " << max_i << "; max_j = " << max_j << "; total_comparisons = " << total_comparisons << std::endl;
-#            if (false) {
-#                std::cout << "minterms_i:";
-#                for (int i = 0; i < std::min(max_i, 10); ++i) {
-#                    std::cout << " " << std::bitset<16>(minterms_i[i]).to_string();
-#                }
-#                std::cout << std::endl;
-#                std::cout << "minterms_j:";
-#                for (int i = 0; i < std::min(max_j, 10); ++i) {
-#                    std::cout << " " << std::bitset<16>(minterms_j[i]).to_string();
-#                }
-#                std::cout << std::endl << std::endl;
-
-#                std::cout << "                ";
-#                for (int i = 0; i < std::min(max_i, 10); ++i) {
-#                    std::cout << " " << std::bitset<16>(minterms_i[i]).to_string();
-#                }
-#                std::cout << std::endl;
-#                for (int j = 0; j < std::min(max_j, 10); ++j) {
-#                    const T term_j = minterms_j[j];
-#                    std::cout << std::bitset<16>(term_j).to_string();
-
-#                    for (int i = 0; i < std::min(max_i, 10); ++i) {
-#                        const T term_i = minterms_i[i];
-#                        std::cout << "                " << is_gray_code(term_i, term_j);
-#                    }
-#                    std::cout << std::endl;
-#                }
-#            }
-
-#            std::vector<char>& checked_i = checked_X.at(bit_count);
-#            std::vector<char>& checked_j = checked_X.at(bit_count + 1);
-
-#            for (int i = 0; i < max_i; ++i) {
-#                const T term_i = minterms_i[i];
-
-#                for (int j = 0; j < max_j; ++j) {
-#                    //%47 of time next line
-#                    const T term_j = minterms_j[j];
-
-#                    //%47 of time next line
-#                    //if (std::popcount(a ^ b) == 1)
-#                    if (is_gray_code(term_i, term_j)) [[unlikely]]
-#                    {
-#                        checked_i[i] = true;
-#                        checked_j[j] = true;
-#                        new_minterms.insert(replace_complements(term_i, term_j));
-#                    }
-#                }
-#            }
-#        }
-#        if constexpr (SHOW_INFO) std::cout << "total_comparisons = " << total_comparisons << std::endl;
-
-#        std::vector<T> result = std::vector<T>(new_minterms.begin(), new_minterms.end());
-
-#        for (int bit_count = 0; bit_count < (max_bit_count + 1); ++bit_count)
-#        {
-#            const std::vector<char>& checked_i = checked_X[bit_count];
-#            const std::vector<T>& minterms_i = set.get(bit_count);
-
-#            for (int i = 0; i < static_cast<int>(checked_i.size()); ++i)
-#            {
-#                if (!checked_i[i]) {
-#                    //std::cout << "not checked i " << std::bitset<16 + 3>(minterms_i[i]) << std::endl;
-#                    result.push_back(minterms_i[i]);
-#                }
-#            }
-#        }
-#        return result;
-#    }
+from vector_tools import equal_vector, print_vector
+from MintermSet import MintermSet
+from petrick import petrick_simplify
+from tools import PrintType, minterm_to_string, minterms_to_string
+from MyBadMap import MyBadSet
 
 
 fn crash():
     let x = DynamicVector[Int](0)
-    let y = x[1000000]
+    let y = x[100000000]
     print(y)
-
 
 
 struct Checked:
@@ -153,24 +53,66 @@ fn replace_complements[T: DType](a: SIMD[T, 1], b: SIMD[T, 1]) -> SIMD[T, 1]:
     return a | neq | (neq << 32)
 
 
-fn minterms_to_string[T: DType, bit_width: Int](v: DynamicVector[SIMD[T, 1]], cap: Int) -> String:
-    var result: String = ""
-    let x = math.min(len(v), cap)
-    for i in range(x):
-        let x = v[i]
-        for j in range(bit_width-1, -1, -1):
-            if ((x >> j) & 1) == 1:
-                result += "1"
-            else:
-                result += "0"
-        result += " "
-    return result
+#   template <bool SHOW_INFO, typename T>
+#   [[nodiscard]] std::vector<T> reduce_minterms_CLASSIC(const std::vector<T>& minterms) {
+#        long long total_comparisons = 0;
+#        const long long max = static_cast<long long>(minterms.size());
+#        std::vector<char> checked = std::vector<char>(max, false);
+#        std::set<T> new_minterms;
+#        total_comparisons += (max * max) / 2;
+#        for (long long i = 0; i < max; ++i) {
+#            const T term_i = minterms[i];
+#            for (long long j = i; j < max; ++j) {
+#                const T term_j = minterms[j];
+#                //If a gray code pair is found, replace the differing bits with don't cares.
+#                if (is_gray_code(term_i, term_j)) [[unlikely]] {
+#                   checked[i] = true;
+#                   checked[j] = true;
+#                   new_minterms.insert(replace_complements(term_i, term_j));
+#                }
+#            }
+#        }
+#        if constexpr (SHOW_INFO) std::cout << "total_comparisons = " << total_comparisons << std::endl;
+#        //appending all reduced terms to a new vector
+#        for (long long i = 0; i < max; ++i) {
+#           if (!checked[i]) {
+#               new_minterms.insert(minterms[i]);
+#           }
+#        }
+#        return std::vector<T>(new_minterms.begin(), new_minterms.end());
+#    }
+fn reduce_minterms_CLASSIC[T: DType](minterms: DynamicVector[SIMD[T, 1]]) -> DynamicVector[SIMD[T, 1]]:
+    var total_comparisons: Int = 0
+    let max = minterms.size
+    var checked = DynamicVector[SIMD[DType.bool, 1]](max)
+    var new_minterms = MyBadSet[T]()
+    total_comparisons += (max * max) >> 1
+    for i in range(max):
+        let term_i = minterms[i]
+        for j in range(max):
+            let term_j = minterms[j]
+            #If a gray code pair is found, replace the differing bits with don't cares.
+            if is_gray_code(term_i, term_j):
+                checked[i] = True
+                checked[j] = True
+                new_minterms.add(replace_complements(term_i, term_j))
+    print("total_comparisons = " + str(total_comparisons))
+    # appending all reduced terms to a new vector
+    for i in range(max):
+        if not checked[i]:
+            new_minterms.add(minterms[i])
+    return new_minterms.data
 
 
-fn reduce_minterms[T: DType, SHOW_INFO: Bool](minterms: MintermSet[T]) -> MintermSet[T]:
-    var total_comparisons: UInt64 = 0
-    let set = minterms
-    var new_minterms = MintermSet[T]()
+
+fn reduce_minterms[T: DType, bit_width: Int, SHOW_INFO: Bool](minterms: DynamicVector[SIMD[T, 1]]) -> DynamicVector[SIMD[T, 1]]:
+    var total_comparisons: Int = 0
+    var set = MintermSet[T, bit_width]()
+
+    for i in range(len(minterms)):
+        set.add[False](minterms[i])
+
+    var new_minterms = DynamicVector[SIMD[T, 1]]()
     var checked_X = Checked()
     let max_bit_count = set.max_bit_count
 
@@ -188,11 +130,12 @@ fn reduce_minterms[T: DType, SHOW_INFO: Bool](minterms: MintermSet[T]) -> Minter
         let max_j = len(minterms_j)
 
         total_comparisons += max_i * max_j
-        print("INFO: 413d6ad8: max_i = " + str(max_i) + "; max_j = " + str(max_j) + "; total comparisons = " + str(total_comparisons))
+        print("INFO: 413d6ad8: max_i = " + str(max_i) + "; max_j = " + str(max_j) + "; total_comparisons = " + str(total_comparisons))
 
         if True:
-            print("INFO: 5fa644ad: minterms_i: " + minterms_to_string[T, 3](minterms_i, 10))
-            print("INFO: 84923df6: minterms_j: " + minterms_to_string[T, 3](minterms_j, 10))
+            pass
+            #print("INFO: 5fa644ad: minterms_i: " + minterms_to_string[Self.MinTermType, 3](minterms_i, 10))
+            #print("INFO: 84923df6: minterms_j: " + minterms_to_string[T, 3](minterms_j, 10))
             # print("\n\n")
             # print("minterms_i: " + minterms_to_string(minterms_i) + "\n")
 
@@ -208,11 +151,14 @@ fn reduce_minterms[T: DType, SHOW_INFO: Bool](minterms: MintermSet[T]) -> Minter
                 if is_gray_code(term_i, term_j):
                     checked_i[i] = True
                     checked_j[j] = True
-                    new_minterms.add(replace_complements[T](term_i, term_j))
+                    let new_mt = replace_complements(term_i, term_j)
+                    #print("INFO: 8920c08c: adding new minterm " + MintermSet.minterm_to_string[PrintType.BIN](new_mt, 3))
+                    new_minterms.push_back(new_mt)
 
     @parameter
     if SHOW_INFO:
         print("INFO: 393bb38d: total_comparisons = " + str(total_comparisons))
+        print("INFO: 0fa954e7: new_minterms " + minterms_to_string[T](new_minterms, bit_width))
 
     var result = new_minterms
 
@@ -221,37 +167,43 @@ fn reduce_minterms[T: DType, SHOW_INFO: Bool](minterms: MintermSet[T]) -> Minter
         let minterms_i = set.get(bit_count)
 
         for i in range(len(minterms_i)):
-            if checked_i[i]:
-                result.add(minterms_i[i])
+            if not checked_i[i]:
+                result.push_back(minterms_i[i])
 
     return result
 
 
-fn reduce_qm[T: DType](minterms_input: MintermSet[T]) -> MintermSet[T]:
+fn eq_minterms[T: DType](v1: DynamicVector[SIMD[T, 1]], v2: DynamicVector[SIMD[T, 1]]) -> Bool:
+    if len(v1) != len(v2):
+        return False
+    for i in range(len(v1)):
+        if v1[i] != v2[i]:
+            return False
+    return True
+
+
+
+fn reduce_qm[bit_width: Int, T: DType](minterms_input: DynamicVector[SIMD[T, 1]]) -> DynamicVector[SIMD[T, 1]]:
     alias SHOW_INFO: Bool = True
 
     var minterms = minterms_input
-    var next_minterms = MintermSet[T]()
-
     var iteration: Int = 0
     var fixed_point: Bool = False
 
     while not fixed_point:
-        next_minterms = reduce_minterms[T, SHOW_INFO](minterms)
+        #let next_minterms = reduce_minterms[bit_width, SHOW_INFO](minterms)
+        let next_minterms = reduce_minterms_CLASSIC[T](minterms)
 
         if True:
             print("INFO: 361a49a4: reduce_qm: iteration " + str(iteration) + "; minterms " + len(minterms) + "; next minterms " + len(next_minterms))
-            print("INFO: 49ecfd1e: minterms     =" + minterms.to_string[PrintType.BIN](3))
-            print("INFO: ed11b7c0: next_minterms=" + next_minterms.to_string[PrintType.BIN](3))
+            print("INFO: 49ecfd1e: old minterms = " + minterms_to_string[T](minterms, 3))
+            print("INFO: ed11b7c0: new minterms = " + minterms_to_string[T](next_minterms, 3))
             iteration += 1
 
         # both are sorted, minterms is not sorted the first iteration, but that is ok.
-        fixed_point = minterms == next_minterms
+        fixed_point = eq_minterms[T](minterms, next_minterms)
         print("INFO: ada1cdf5: fixed_point="+str(fixed_point))
-        
-        crash()
-        
-        minterms = next_minterms
+        minterms = next_minterms ^
 
-    # return petrick_simplify(minterms, minterms_input)
-    return next_minterms
+    #return petrick_simplify[bit_width, SHOW_INFO](minterms, minterms_input)
+    return minterms
