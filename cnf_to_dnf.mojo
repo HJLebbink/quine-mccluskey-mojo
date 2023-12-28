@@ -1,17 +1,23 @@
 from tools import get_bit, delete_indices
 from math.bit import ctpop
 
+fn DynamicVector2Str(v: DynamicVector[Int]) -> String:
+    var result: String = ""
+    for i in range(len(v)):
+        result += str(v[i])
+    return result
+
+
 #        template <OptimizedFor OF, typename DT>
-#        [[nodiscard]] std::vector<DT> convert_cnf_to_dnf(const std::vector<DT>& cnf, const int n_bits)
-#        {
+#        [[nodiscard]] std::vector<DT> convert_cnf_to_dnf(const std::vector<DT>& cnf, const int n_bits) {
 #            std::vector<DT> result_dnf;
 #            bool first = true;
 #            for (const DT disjunction : cnf) {
 #                if (first) {
 #                    first = false;
-#                    for (int i = 0; i < n_bits; ++i) {
-#                        if (test_bit(disjunction, i)) {
-#                            result_dnf.push_back(1ull << i);
+#                    for (int pos = 0; pos < n_bits; ++pos) {
+#                        if (test_bit(disjunction, pos)) {
+#                            result_dnf.push_back(1ull << pos);
 #                        }
 #                    }
 #                }
@@ -22,10 +28,8 @@ from math.bit import ctpop
 #                            const DT x = (1ull << pos);
 #                            for (const DT y : result_dnf) {
 #                                const DT z = (x | y);
-#
 #                                const std::tuple<std::vector<int>, bool> tup = run_optimized<OF>(result_dnf_next, z);
 #                                const bool add_z = std::get<1>(tup);
-#
 #                                if (add_z) { //NOTE: if add_z is false, then index_to_delete has to be empty always
 #                                    const std::vector<int> index_to_delete = std::move(std::get<0>(tup));
 #                                    for (int i = static_cast<int>(index_to_delete.size()) - 1; i >= 0; --i) {
@@ -41,13 +45,11 @@ from math.bit import ctpop
 #            }
 #            return result_dnf;
 #        }
-
-
 fn convert_cnf_to_dnf[
     DT: DType, QUIET: Bool
 ](cnf: DynamicVector[SIMD[DT, 1]], n_bits: Int) -> DynamicVector[SIMD[DT, 1]]:
     var result_dnf = DynamicVector[SIMD[DT, 1]]()
-    var first: Bool = True
+    var first = True
     for i in range(cnf.size):
         let disjunction = cnf[i]
         if first:
@@ -64,16 +66,14 @@ fn convert_cnf_to_dnf[
                         let y = result_dnf[j]
                         let z = x.__or__(y)
 
-                        var index_to_delete: DynamicVector[Int] = run_optimized(
-                            result_dnf_next, z
-                        )
-                        let add_z: Bool = index_to_delete.size > 0
-
-                        if add_z:
-                            delete_indices[DT, True](result_dnf_next, index_to_delete)
+                        var tmp_struct = run_optimized(result_dnf_next, z)
+                        if tmp_struct.add_z:
+                            #print("INFO: size(index_to_delete) = " + str(tmp_struct.index_to_delete.size)) #DynamicVector2Str(index_to_delete))
+                            delete_indices[DT, True](result_dnf_next, tmp_struct.index_to_delete)
                             result_dnf_next.push_back(z)
 
             result_dnf = result_dnf_next
+            result_dnf_next.clear()
             # std::swap(result_dnf, result_dnf_next);
     return result_dnf
 
@@ -224,14 +224,10 @@ fn convert_cnf_to_dnf_minimal[
                                 n_not_pruned += 1
 
                             if consider_z:
-                                var index_to_delete: DynamicVector[Int] = run_optimized(
-                                    result_dnf_next, z
-                                )
-                                let add_z = index_to_delete.size > 0
-
-                                if add_z:
+                                var tmp_struct2 = run_optimized(result_dnf_next, z)
+                                if tmp_struct2.add_z:
                                     delete_indices[DT, True](
-                                        result_dnf_next, index_to_delete
+                                        result_dnf_next, tmp_struct2.index_to_delete
                                     )
                                     result_dnf_next.push_back(z)
 
@@ -264,18 +260,33 @@ fn convert_cnf_to_dnf_minimal[
     return result_dnf_minimal
 
 
-fn run_optimized[
-    DT: DType
-](result_dnf_next: DynamicVector[SIMD[DT, 1]], z: SIMD[DT, 1]) -> DynamicVector[Int]:
+struct TmpStruct2:
+    var index_to_delete: DynamicVector[Int]
+    var add_z: Bool
+
+    @always_inline("nodebug")
+    fn __init__(inout self):
+        self.index_to_delete = DynamicVector[Int]()
+        self.add_z = False
+
+    @always_inline("nodebug")
+    fn __moveinit__(inout self, owned existing: Self):
+        self.index_to_delete = existing.index_to_delete ^
+        self.add_z = existing.add_z
+
+
+fn run_optimized[T: DType](dnf: DynamicVector[SIMD[T, 1]], z: SIMD[T, 1]) -> TmpStruct2:
     # TODO consider only test with content of result_dnf_next that has less number of bits set.
-    var index_to_delete = DynamicVector[Int]()
+    var result = TmpStruct2()
     var index = 0
-    for i in range(result_dnf_next.size):
-        let q = result_dnf_next[i]
+    for i in range(dnf.size):
+        let q = dnf[i]
         let p = z.__or__(q)
         if p == z:  # z is subsumed under q: no need to add z
-            return DynamicVector[Int]()
+            return result^
         elif p == q:  # q is subsumed under z: add z and remove q
-            index_to_delete.push_back(index)
+            result.index_to_delete.push_back(index)
         index += 1
-    return index_to_delete
+
+    result.add_z = True
+    return result^

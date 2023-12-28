@@ -445,6 +445,7 @@ struct TmpStruct1:
     var pi_table2: PI_table_2
     var essential_pi: DynamicVector[SIMD[Prime_Implicant, 1]]
 
+    @always_inline("nodebug")
     fn __init__(inout self):
         self.pi_table2 = PI_table_2()
         self.essential_pi = DynamicVector[SIMD[Prime_Implicant, 1]]()

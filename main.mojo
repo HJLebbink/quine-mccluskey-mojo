@@ -1,3 +1,5 @@
+from random import random_ui64
+
 from quine_mccluskey import reduce_qm
 from MintermSet import MintermSet
 from TruthTable import TruthTable
@@ -59,9 +61,12 @@ fn test_cnf2dnf_0():
     cnf1.push_back((1 << 1) | (1 << 2))
     cnf1.push_back((1 << 3) | (1 << 4))
 
-    print("CNF = " + cnf_to_string[DT](cnf1))
-    let dnf1 = convert_cnf_to_dnf[DT, True](cnf1, n_bits)
-    print("DNF = " + dnf_to_string[DT](dnf1))
+    alias QUIET = True
+    print("expected CNF: (1|2) & (3|4)")
+    print("observed CNF:" + cnf_to_string[DT](cnf1))
+    let dnf1 = convert_cnf_to_dnf[DT, QUIET](cnf1, n_bits)
+    print("expected DNF: (1&3) | (2&3) | (1&4) | (2&4)")
+    print("observed DNF:" + dnf_to_string[DT](dnf1))
 
 
 # CNF =  (1|2) & (1|3) & (3|4) & (2|5) & (4|6) & (5|6)
@@ -83,9 +88,11 @@ fn test_cnf2dnf_1():
     # 145 1246 1356 2345 236
     # DNF = (145) & (2345) & (236) & (1246) & (1356)
 
-    print("CNF = " + cnf_to_string[DT](cnf1))
+    print("expected CNF: (1|2) & (1|3) & (3|4) & (2|5) & (4|6) & (5|6)")
+    print("observed CNF:" + cnf_to_string[DT](cnf1))
     let dnf1 = convert_cnf_to_dnf[DT, True](cnf1, n_bits)
-    print("DNF = " + dnf_to_string[DT](dnf1))
+    print("expected DNF: (1&4&5) | (2&3&4&5) | (2&3&6) | (1&2&4&6) | (1&3&5&6)")
+    print("observed DNF:" + dnf_to_string[DT](dnf1))
 
 
 # CNF =  (A|B) & (A|C) & (B|E) & (C|D) & (D|F) & (E|F)
@@ -107,20 +114,17 @@ fn test_cnf2dnf_2():
 
 fn test_cnf2dnf_3():
     alias DT = DType.uint32
-    # std::srand(42);
     alias n_bits = 16
     alias n_conjunctions = 500
     alias n_disjunctions = 8
 
     var cnf1 = DynamicVector[SIMD[DT, 1]]()
-    # for (int i = 0; i < n_conjunctions; ++i) {
-    #    DT conjunction = 0;
-    #    for (int j = 0; j < n_disjunctions; ++j) {
-    #        const int r = rand() % n_bits;
-    #        conjunction |= (1ull << r);
-    #    }
-    #    cnf1.push_back(conjunction);
-    # }
+    for i in range(n_conjunctions):
+        var conjunction: SIMD[DT, 1] = 0
+        for j in range(n_disjunctions):
+            let r = random.random_ui64(0, 0xFFFF_FFFF).cast[DT]() % n_bits
+            conjunction |= (1 << r)
+        cnf1.push_back(conjunction)
 
     print("CNF = " + cnf_to_string[DT](cnf1))
     let dnf1 = convert_cnf_to_dnf[DT, True](cnf1, n_bits)
@@ -129,20 +133,17 @@ fn test_cnf2dnf_3():
 
 fn test_cnf2dnf_4():
     alias DT = DType.uint32
-    # std::srand(42);
     alias n_bits = 32
     alias n_conjunctions = 20
     alias n_disjunctions = 8
 
     var cnf1 = DynamicVector[SIMD[DT, 1]]()
-    # for (int i = 0; i < n_conjunctions; ++i) {
-    #    DT conjunction = 0;
-    #    for (int j = 0; j < n_disjunctions; ++j) {
-    #        const int r = rand() % n_bits;
-    #        conjunction |= (1ull << r);
-    #    }
-    #    cnf1.push_back(conjunction);
-    # }
+    for i in range(n_conjunctions):
+        var conjunction: SIMD[DT, 1] = 0
+        for j in range(n_disjunctions):
+            let r = random.random_ui64(0, 0xFFFF_FFFF).cast[DT]() % n_bits
+            conjunction |= (1 << r)
+        cnf1.push_back(conjunction)
 
     print("CNF = " + cnf_to_string[DT](cnf1))
     let dnf1 = convert_cnf_to_dnf[DT, True](cnf1, n_bits)
@@ -151,20 +152,17 @@ fn test_cnf2dnf_4():
 
 fn test_cnf2dnf_5():
     alias DT = DType.uint64
-    # std::srand(42);
     alias n_bits = 64
     alias n_conjunctions = 10
     alias n_disjunctions = 8
 
     var cnf1 = DynamicVector[SIMD[DT, 1]]()
-    # for (int i = 0; i < n_conjunctions; ++i) {
-    #    DT conjunction = 0;
-    #    for (int j = 0; j < n_disjunctions; ++j) {
-    #        const int r = rand() % n_bits;
-    #        conjunction |= (1ull << r);
-    #    }
-    #    cnf1.push_back(conjunction);
-    # }
+    for i in range(n_conjunctions):
+        var conjunction: SIMD[DT, 1] = 0
+        for j in range(n_disjunctions):
+            let r = random.random_ui64(0, 0xFFFF_FFFF).cast[DT]() % n_bits
+            conjunction |= (1 << r)
+        cnf1.push_back(conjunction)
 
     print("CNF = " + cnf_to_string[DT](cnf1))
     let dnf1 = convert_cnf_to_dnf[DT, True](cnf1, n_bits)
@@ -222,12 +220,12 @@ fn test_cnf2dnf_very_hard():
 
 fn main():
     # minterms_test()
-    truth_table_test()
+    #truth_table_test()
 
-    test_cnf2dnf_0()
-    # test_cnf2dnf_1()
-    # test_cnf2dnf_2()
-    # test_cnf2dnf_3()
-    # test_cnf2dnf_4()
-    # test_cnf2dnf_5()
-    # test_cnf2dnf_very_hard()
+    #test_cnf2dnf_0()
+    test_cnf2dnf_1()
+    #test_cnf2dnf_2() #TODO
+    #test_cnf2dnf_3()
+    #test_cnf2dnf_4()
+    #test_cnf2dnf_5()
+    #test_cnf2dnf_very_hard() #TODO

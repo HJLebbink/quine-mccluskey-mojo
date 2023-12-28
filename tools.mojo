@@ -53,22 +53,22 @@ fn delete_indices[
 
 
 fn cnf_to_string[T: DType](cnf: DynamicVector[SIMD[T, 1]]) -> String:
-    return to_string[T](cnf, True)
+    return to_string[T, True](cnf)
 
 
 fn cnf_to_string2(cnf: DynamicVector[DynamicVector[String]]) -> String:
-    return to_string2(cnf, True)
+    return to_string2[True](cnf)
 
 
 fn dnf_to_string[T: DType](dnf: DynamicVector[SIMD[T, 1]]) -> String:
-    return to_string[T](dnf, False)
+    return to_string[T, False](dnf)
 
 
 fn dnf_to_string2(dnf: DynamicVector[DynamicVector[String]]) -> String:
-    return to_string2(dnf, False)
+    return to_string2[False](dnf)
 
 
-fn to_string[T: DType](cnf: DynamicVector[SIMD[T, 1]], is_cnf: Bool) -> String:
+fn to_string[T: DType, is_cnf: Bool](cnf: DynamicVector[SIMD[T, 1]]) -> String:
     alias n_bits = T.sizeof() * 8
     var cnf_copy = cnf
     sort[T](cnf_copy)
@@ -83,23 +83,23 @@ fn to_string[T: DType](cnf: DynamicVector[SIMD[T, 1]], is_cnf: Bool) -> String:
                 result += "&"
             else:
                 result += "|"
-            result += " ("
-            var first_e = True
-            for pos in range(n_bits):
-                if get_bit(disj, pos):
-                    if first_e:
-                        first_e = False
+        result += " ("
+        var first_e = True
+        for pos in range(n_bits):
+            if get_bit(disj, pos):
+                if first_e:
+                    first_e = False
+                else:
+                    if is_cnf:
+                        result += "|"
                     else:
-                        if is_cnf:
-                            result += "|"
-                        else:
-                            result += "&"
-                    result += str(pos)
-            result += ") "
+                        result += "&"
+                result += str(pos)
+        result += ") "
     return result
 
 
-fn to_string2(cnf: DynamicVector[DynamicVector[String]], is_cnf: Bool) -> String:
+fn to_string2[is_cnf: Bool](cnf: DynamicVector[DynamicVector[String]]) -> String:
     var conjunctions = MyBadSetStr()
     for i in range(cnf.size):
         var conj = cnf[i]
