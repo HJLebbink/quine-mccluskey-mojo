@@ -4,23 +4,9 @@ from quine_mccluskey import reduce_qm
 from MintermSet import MintermSet
 from TruthTable import TruthTable
 from cnf_to_dnf import convert_cnf_to_dnf_minimal, convert_cnf_to_dnf
-from tools import cnf_to_string, dnf_to_string, cnf_to_string2, dnf_to_string2
+from to_string import PrintType, cnf_to_string, dnf_to_string, cnf_to_string2, dnf_to_string2
 
-
-fn minterms_test():
-    var minterms = MintermSet[DType.uint16, 8]()
-    minterms.add(0b11100111)
-    minterms.add(0b11100001)
-    minterms.add(0b01100001)
-    minterms.add(0b00100001)
-
-    print("before:\n" + str(minterms))
-
-    # let x = reduce_qm(minterms)
-    print("after:\n" + str(minterms))
-
-
-fn truth_table_test():
+fn truth_table_test1():
     var tt = TruthTable[3]()
     tt.set_true(0b011)
     tt.set_true(0b100)
@@ -41,14 +27,34 @@ fn truth_table_test():
     # X11 -> 1
     # 1XX -> 1
 
-    # print(tt)
-    # tt.sort()
     print("INFO: c4eb08c9: uncompressed:")
-    print(tt)
+    print("expected: 011 100 101 110 111")
+    print("observed: " + tt.to_string[PrintType.BIN]())
 
     print("INFO: 161fd301: compressed:")
     tt.minimize()
-    print(tt)
+    print("expected: 1XX X11")
+    print("observed: " + tt.to_string[PrintType.BIN]())
+
+
+fn truth_table_test2():
+    var tt = TruthTable[8]()
+    tt.set_true(0b11100111)
+    tt.set_true(0b11100001)
+    tt.set_true(0b01100001)
+    tt.set_true(0b00100001)
+
+    print("INFO: c4eb08c9: uncompressed:")
+    print("expected: 11100111 11100001 01100001 00100001")
+    print("observed: " + tt.to_string[PrintType.BIN]())
+
+    print("INFO: 161fd301: compressed:")
+    tt.minimize()
+    print("expected: 0X100001 X1100001 11100111")
+    print("observed: " + tt.to_string[PrintType.BIN]())
+
+
+
 
 
 # CNF =  (1|2) & (3|4)
@@ -123,7 +129,7 @@ fn test_cnf2dnf_3():
         var conjunction: SIMD[DT, 1] = 0
         for j in range(n_disjunctions):
             let r = random.random_ui64(0, 0xFFFF_FFFF).cast[DT]() % n_bits
-            conjunction |= (1 << r)
+            conjunction |= 1 << r
         cnf1.push_back(conjunction)
 
     print("CNF = " + cnf_to_string[DT](cnf1))
@@ -142,7 +148,7 @@ fn test_cnf2dnf_4():
         var conjunction: SIMD[DT, 1] = 0
         for j in range(n_disjunctions):
             let r = random.random_ui64(0, 0xFFFF_FFFF).cast[DT]() % n_bits
-            conjunction |= (1 << r)
+            conjunction |= 1 << r
         cnf1.push_back(conjunction)
 
     print("CNF = " + cnf_to_string[DT](cnf1))
@@ -161,7 +167,7 @@ fn test_cnf2dnf_5():
         var conjunction: SIMD[DT, 1] = 0
         for j in range(n_disjunctions):
             let r = random.random_ui64(0, 0xFFFF_FFFF).cast[DT]() % n_bits
-            conjunction |= (1 << r)
+            conjunction |= 1 << r
         cnf1.push_back(conjunction)
 
     print("CNF = " + cnf_to_string[DT](cnf1))
@@ -219,13 +225,13 @@ fn test_cnf2dnf_very_hard():
 
 
 fn main():
-    # minterms_test()
-    #truth_table_test()
+    truth_table_test1()
+    truth_table_test2()
 
-    #test_cnf2dnf_0()
-    test_cnf2dnf_1()
-    #test_cnf2dnf_2() #TODO
-    #test_cnf2dnf_3()
-    #test_cnf2dnf_4()
-    #test_cnf2dnf_5()
-    #test_cnf2dnf_very_hard() #TODO
+    # test_cnf2dnf_0()
+    # test_cnf2dnf_1()
+    # test_cnf2dnf_2() #TODO
+    # test_cnf2dnf_3()
+    # test_cnf2dnf_4()
+    # test_cnf2dnf_5()
+    # test_cnf2dnf_very_hard() #TODO

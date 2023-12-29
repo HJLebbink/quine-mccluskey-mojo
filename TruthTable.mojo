@@ -3,10 +3,12 @@ from algorithm.sort import sort
 
 from quine_mccluskey import reduce_qm
 from MintermSet import MintermSet
-from tools import get_bit, PrintType
+from tools import get_bit, get_minterm_type
+from to_string import PrintType, minterms_to_string
+
 
 struct TruthTable[bit_width: Int, has_unknown: Bool = True](Stringable):
-    alias MinTermType: DType = Self.getMinTermType[bit_width]()
+    alias MinTermType: DType = get_minterm_type[bit_width]()
 
     var data: DynamicVector[SIMD[Self.MinTermType, 1]]
     var is_sorted: Bool
@@ -59,21 +61,6 @@ struct TruthTable[bit_width: Int, has_unknown: Bool = True](Stringable):
             print("Not implemented yet")
         return 0
 
-    @staticmethod
-    fn getMinTermType[n: Int]() -> DType:
-        @parameter
-        if n <= 4:
-            return DType.uint8
-        elif n <= 8:
-            return DType.uint16
-        elif n <= 16:
-            return DType.uint32
-        elif n <= 32:
-            return DType.uint64
-        else:
-            constrained[False]()
-        return DType.uint64
-
     fn sort(inout self):
         if self.is_sorted:
             return
@@ -86,11 +73,7 @@ struct TruthTable[bit_width: Int, has_unknown: Bool = True](Stringable):
             return
         else:
             self.sort()
-
-            # do the reducing
             self.data = reduce_qm[bit_width, Self.MinTermType](self.data)
-
-            # remember that we are sorted
             self.is_minimized = True
 
     # trait Stringable
@@ -99,28 +82,10 @@ struct TruthTable[bit_width: Int, has_unknown: Bool = True](Stringable):
         let result: String =
             "is_sorted = " + str(self.is_sorted) +
             "; is_minimized = " + str(self.is_minimized) + "; data = \n"
-        return result + self.to_string[PrintType.BIN]()
+        return result + self.to_string[PrintType.VERBOSE]()
 
-    fn to_string[t: PrintType](self) -> String:
-        var result: String = ""
-        @parameter
-        if t == PrintType.BIN:
-            for i in range(len(self.data)):
-                let v = self.data[i]
-                for j in range(bit_width):
-                    let pos = (bit_width - j)-1
-                    if tools.get_bit(v, pos + bit_width):
-                        result += "X"
-                    elif tools.get_bit(v, pos):
-                        result += "1"
-                    else:
-                        result += "0"
-                result += "\n"
-        else:
-            result+= "Not implemented yet" #TODO
-
-        return result
-
+    fn to_string[P: PrintType](self) -> String:
+        return minterms_to_string[Self.MinTermType, P, 100](self.data, bit_width)
 
     fn print_blif(self) -> String:
         return "TODO"

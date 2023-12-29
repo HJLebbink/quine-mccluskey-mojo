@@ -1,12 +1,6 @@
 from tools import get_bit, delete_indices
 from math.bit import ctpop
 
-fn DynamicVector2Str(v: DynamicVector[Int]) -> String:
-    var result: String = ""
-    for i in range(len(v)):
-        result += str(v[i])
-    return result
-
 
 #        template <OptimizedFor OF, typename DT>
 #        [[nodiscard]] std::vector<DT> convert_cnf_to_dnf(const std::vector<DT>& cnf, const int n_bits) {
@@ -68,8 +62,10 @@ fn convert_cnf_to_dnf[
 
                         var tmp_struct = run_optimized(result_dnf_next, z)
                         if tmp_struct.add_z:
-                            #print("INFO: size(index_to_delete) = " + str(tmp_struct.index_to_delete.size)) #DynamicVector2Str(index_to_delete))
-                            delete_indices[DT, True](result_dnf_next, tmp_struct.index_to_delete)
+                            # print("INFO: size(index_to_delete) = " + str(tmp_struct.index_to_delete.size)) #DynamicVector2Str(index_to_delete))
+                            delete_indices[DT, True](
+                                result_dnf_next, tmp_struct.index_to_delete
+                            )
                             result_dnf_next.push_back(z)
 
             result_dnf = result_dnf_next
@@ -283,10 +279,10 @@ fn run_optimized[T: DType](dnf: DynamicVector[SIMD[T, 1]], z: SIMD[T, 1]) -> Tmp
         let q = dnf[i]
         let p = z.__or__(q)
         if p == z:  # z is subsumed under q: no need to add z
-            return result^
+            return result ^
         elif p == q:  # q is subsumed under z: add z and remove q
             result.index_to_delete.push_back(index)
         index += 1
 
     result.add_z = True
-    return result^
+    return result ^

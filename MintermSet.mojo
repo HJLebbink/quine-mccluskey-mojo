@@ -1,8 +1,9 @@
 from collections.vector import DynamicVector
 from math.bit import ctpop
 from algorithm.sort import sort
+from tools import get_bit
+from to_string import PrintType, minterms_to_string, minterm_to_string
 
-from tools import get_bit, PrintType, minterms_to_string, minterm_to_string
 
 struct MintermSet[T: DType, bit_width: Int](CollectionElement, Sized, Stringable):
     alias Q = DynamicVector[SIMD[T, 1]]
@@ -65,7 +66,7 @@ struct MintermSet[T: DType, bit_width: Int](CollectionElement, Sized, Stringable
 
     # trait Stringable
     fn __str__(self) -> String:
-        return self.to_string[PrintType.DEC](bit_width)
+        return self.to_string[PrintType.VERBOSE](bit_width)
 
     fn to_string[P: PrintType](self, number_vars: Int) -> String:
         var result: String = ""
