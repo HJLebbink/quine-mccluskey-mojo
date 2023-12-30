@@ -1,7 +1,7 @@
 from collections.vector import DynamicVector
 from algorithm.sort import sort
 
-from quine_mccluskey import reduce_qm
+from quine_mccluskey import reduce_qm, reduce_qm_classic
 from MintermSet import MintermSet
 from tools import get_bit, get_minterm_type
 from to_string import PrintType, minterms_to_string
@@ -68,12 +68,17 @@ struct TruthTable[bit_width: Int, has_unknown: Bool = True](Stringable):
             sort[Self.MinTermType](self.data)
             self.is_sorted = True
 
-    fn minimize(inout self):
+    fn minimize[USE_CLASSIC_METHOD: Bool = False, SHOW_INFO: Bool = False](inout self):
         if self.is_minimized:
             return
         else:
             self.sort()
-            self.data = reduce_qm[bit_width, Self.MinTermType](self.data)
+
+            @parameter
+            if USE_CLASSIC_METHOD:
+                self.data = reduce_qm_classic[Self.MinTermType, bit_width, SHOW_INFO=SHOW_INFO](self.data)
+            else:
+                self.data = reduce_qm[Self.MinTermType, bit_width, SHOW_INFO=SHOW_INFO](self.data)
             self.is_minimized = True
 
     # trait Stringable

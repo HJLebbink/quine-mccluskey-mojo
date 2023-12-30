@@ -32,8 +32,9 @@ fn truth_table_test1():
     print("observed: " + tt.to_string[PrintType.BIN]())
 
     print("INFO: 161fd301: compressed:")
-    tt.minimize()
     print("expected: 1XX X11")
+    alias SHOW_INFO = False
+    tt.minimize[USE_CLASSIC_METHOD=False, SHOW_INFO=SHOW_INFO]()
     print("observed: " + tt.to_string[PrintType.BIN]())
 
 
@@ -49,12 +50,10 @@ fn truth_table_test2():
     print("observed: " + tt.to_string[PrintType.BIN]())
 
     print("INFO: 161fd301: compressed:")
-    tt.minimize()
+    alias SHOW_INFO = True
+    tt.minimize[SHOW_INFO]()
     print("expected: 0X100001 X1100001 11100111")
     print("observed: " + tt.to_string[PrintType.BIN]())
-
-
-
 
 
 # CNF =  (1|2) & (3|4)
@@ -67,10 +66,10 @@ fn test_cnf2dnf_0():
     cnf1.push_back((1 << 1) | (1 << 2))
     cnf1.push_back((1 << 3) | (1 << 4))
 
-    alias QUIET = True
+    alias SHOW_INFO = True
     print("expected CNF: (1|2) & (3|4)")
     print("observed CNF:" + cnf_to_string[DT](cnf1))
-    let dnf1 = convert_cnf_to_dnf[DT, QUIET](cnf1, n_bits)
+    let dnf1 = convert_cnf_to_dnf[DT, SHOW_INFO](cnf1, n_bits)
     print("expected DNF: (1&3) | (2&3) | (1&4) | (2&4)")
     print("observed DNF:" + dnf_to_string[DT](dnf1))
 
@@ -226,7 +225,7 @@ fn test_cnf2dnf_very_hard():
 
 fn main():
     truth_table_test1()
-    truth_table_test2()
+    #truth_table_test2()
 
     # test_cnf2dnf_0()
     # test_cnf2dnf_1()

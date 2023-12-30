@@ -1,4 +1,4 @@
-struct MyBadMap[Key: DType, Value: CollectionElement](
+struct MyMap[Key: DType, Value: CollectionElement](
     CollectionElement, Sized, Stringable
 ):
     var keys: DynamicVector[SIMD[Key, 1]]
@@ -70,7 +70,7 @@ struct MyBadMap[Key: DType, Value: CollectionElement](
         return False
 
 
-struct MyBadSet[Value: DType](CollectionElement, Sized, Stringable):
+struct MySet[Value: DType](CollectionElement, Sized, Stringable):
     var data: DynamicVector[SIMD[Value, 1]]
 
     @always_inline("nodebug")
@@ -114,7 +114,7 @@ struct MyBadSet[Value: DType](CollectionElement, Sized, Stringable):
                 return
         self.data.push_back(value)
 
-    fn add(inout self, values: MyBadSet[Value]):
+    fn add(inout self, values: MySet[Value]):
         for i in range(len(values)):
             # this can be done more efficient
             self.add(values.data[i])
@@ -126,7 +126,7 @@ struct MyBadSet[Value: DType](CollectionElement, Sized, Stringable):
         return False
 
 
-struct MyBadSetStr(CollectionElement, Sized, Stringable):
+struct MySetStr(CollectionElement, Sized, Stringable):
     var data: DynamicVector[String]
 
     @always_inline("nodebug")

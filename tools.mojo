@@ -36,6 +36,23 @@ fn get_dk_offset[T: DType]() -> Int:
         constrained[False]()
     return 32
 
+fn get_dk_mask[T: DType]() -> SIMD[T, 1]:
+    alias n_bytes = T.sizeof()
+    @parameter
+    if n_bytes == 1:
+        return 0xF
+    elif n_bytes == 2:
+        return 0xFF
+    elif n_bytes == 4:
+        return 0xFFFF
+    elif n_bytes == 8:
+        return 0xFFFF_FFFF
+    else:
+        constrained[False]()
+        return 0xFFFF_FFFF
+
+
+
 
 # delete index by moving the last element into the deleted index
 fn delete_index[T: DType](inout v: DynamicVector[SIMD[T, 1]], idx: Int):
@@ -57,3 +74,15 @@ fn delete_indices[
     for i in range(i_size):
         let j = (i_size - i) - 1
         delete_index[T](v, indices[j])
+        
+
+fn eq_dynamic_vector[
+    T: DType
+](v1: DynamicVector[SIMD[T, 1]], v2: DynamicVector[SIMD[T, 1]]) -> Bool:
+    if len(v1) != len(v2):
+        return False
+    for i in range(len(v1)):
+        if v1[i] != v2[i]:
+            return False
+    return True
+

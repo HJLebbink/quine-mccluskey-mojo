@@ -2,7 +2,7 @@ from collections.vector import DynamicVector
 from algorithm.sort import sort
 
 from tools import get_bit, get_dk_offset
-from MyBadMap import MyBadSet, MyBadSetStr
+from MyMap import MySet, MySetStr
 
 
 @register_passable("trivial")
@@ -84,7 +84,7 @@ fn cnf_dnf_to_string[T: DType, is_cnf: Bool](cnf: DynamicVector[SIMD[T, 1]]) -> 
 
 
 fn cnf_dnf_to_string2[is_cnf: Bool](cnf: DynamicVector[DynamicVector[String]]) -> String:
-    var conjunctions = MyBadSetStr()
+    var conjunctions = MySetStr()
     for i in range(cnf.size):
         var conj = cnf[i]
         # sort[String](conj)
