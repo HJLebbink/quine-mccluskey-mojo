@@ -7,6 +7,8 @@ from cnf_to_dnf import convert_cnf_to_dnf_minimal, convert_cnf_to_dnf
 from to_string import PrintType, cnf_to_string, dnf_to_string, cnf_to_string2, dnf_to_string2
 
 fn truth_table_test1():
+    alias SHOW_INFO = False
+
     var tt = TruthTable[3]()
     tt.set_true(0b011)
     tt.set_true(0b100)
@@ -33,12 +35,111 @@ fn truth_table_test1():
 
     print("INFO: 161fd301: compressed:")
     print("expected: 1XX X11")
-    alias SHOW_INFO = False
-    tt.minimize[USE_CLASSIC_METHOD=False, SHOW_INFO=SHOW_INFO]()
+    tt.minimize[USE_CLASSIC_METHOD=True, SHOW_INFO=SHOW_INFO]()
     print("observed: " + tt.to_string[PrintType.BIN]())
 
 
+# example needs Petricks method; has no primary essential prime implicants
 fn truth_table_test2():
+    alias SHOW_INFO = False
+
+    alias N_BITS = 4
+    var tt = TruthTable[N_BITS]()
+    let implicants = VariadicList(0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13) #has primary essential prime implicants; Petricks method is not needed
+    for i in range(len(implicants)):
+        tt.set_true(implicants[i])
+
+	#     ABCD
+	#  0: 0000 -> 1
+	#  1: 0001 -> 0
+	#  2: 0010 -> 1
+	#  3: 0011 -> 1
+	#  4: 0100 -> 1
+	#  5: 0101 -> 1
+	#  6: 0110 -> 1
+	#  7: 0111 -> 1
+	#  8: 1000 -> 1
+	#  9: 1001 -> 1
+	# 10: 1010 -> 1
+	# 11: 1011 -> 1
+	# 12: 1100 -> 1
+	# 13: 1101 -> 1
+	# 14: 1110 -> 0
+    # 15: 1111 -> 0
+
+    print("expected: 0000 0010 0011 0100 0101 0110 0111 1000 1001 1010 1011 1100 1101")
+    print("observed: " + tt.to_string[PrintType.BIN]())
+    tt.minimize[USE_CLASSIC_METHOD=False, SHOW_INFO=SHOW_INFO]()
+    print("expected: X10X 10XX 0X1X 0XX0")
+    print("observed: " + tt.to_string[PrintType.BIN]())
+
+    # (x̄3x̄0), (x̄3x1), (x2x̄1), (x3x̄2) // manually checked with https://www.mathematik.uni-marburg.de/~thormae/lectures/ti1/code/qmc/
+    # 0XX0 0X1X X10X 10XX : identical with observed
+
+    # A'D' + A'C + BC' + AB'  // result from http://www.32x8.com/var4.html
+    # 0XX0 0X1X X10X 10XX : identical with observed
+
+    # A~B + ~C~D + ~AC + B~C  // result from https://ictlab.kz/extra/Kmap/
+    # 10XX XX00 0X1X X10X : NOT identical with thormae
+
+    # A' B  + B' C  + A C'  + C' D'  // result from logic Friday
+    # 01XX X01X 1X0X XX00 ??? mess: not sure what causes this
+    # 10XX X10X 0X1X XX11
+
+
+fn truth_table_test3():
+    alias SHOW_INFO = False
+
+    alias N_BITS = 4
+    var tt = TruthTable[N_BITS]()
+    let implicants = VariadicList(0, 2, 5, 6, 7, 8, 10, 12, 13, 14, 15) #has primary essential prime implicants; Petricks method is not needed
+    for i in range(len(implicants)):
+        tt.set_true(implicants[i])
+
+	#     ABCD
+	#  0: 0000 -> 1
+	#  1: 0001 -> 0
+	#  2: 0010 -> 1
+	#  3: 0011 -> 0
+	#  4: 0100 -> 0
+	#  5: 0101 -> 1
+	#  6: 0110 -> 1
+	#  7: 0111 -> 1
+	#  8: 1000 -> 1
+	#  9: 1001 -> 0
+	# 10: 1010 -> 1
+	# 11: 1011 -> 0
+	# 12: 1100 -> 1
+	# 13: 1101 -> 1
+	# 14: 1110 -> 1
+    # 15: 1111 -> 1
+
+    #print("INFO: c4eb08c9: uncompressed:")
+    print("expected: 0000 0010 0101 0110 0111 1000 1010 1100 1101 1110 1111")
+    print("observed: " + tt.to_string[PrintType.BIN]())
+
+    #print("INFO: 161fd301: compressed:")
+    tt.minimize[USE_CLASSIC_METHOD=True, SHOW_INFO=SHOW_INFO]()
+    print("expected: X0X0 X1X1 1XX0 XX10")
+    print("observed: " + tt.to_string[PrintType.BIN]())
+
+    # (x̄2x̄0) ∨ (x2x0) ∨ (x1x̄0) ∨ (x3x̄0) // manually checked with https://www.mathematik.uni-marburg.de/~thormae/lectures/ti1/code/qmc/
+    # X0X0      X1X1      XX10     1XX0
+
+    # C~D + BD + A~D + ~B~D  // result from https://ictlab.kz/extra/Kmap/
+    # XX10 X1X1 1XX0 X0X0  : identical with thormae
+
+    # B'D' + CD' + BD + AD'  // result from http://www.32x8.com/var4.html
+    # X0X0 XX10 X1X1 1XX0  : identical with thormae
+
+    # B D + B' D' + A D' + C D'  // result from logic Friday
+    # X1X1 X0X0 1XX0 XX10  : identical with thormae
+
+
+
+fn truth_table_test4():
+    alias SHOW_INFO = True
+
     var tt = TruthTable[8]()
     tt.set_true(0b11100111)
     tt.set_true(0b11100001)
@@ -50,7 +151,6 @@ fn truth_table_test2():
     print("observed: " + tt.to_string[PrintType.BIN]())
 
     print("INFO: 161fd301: compressed:")
-    alias SHOW_INFO = True
     tt.minimize[SHOW_INFO]()
     print("expected: 0X100001 X1100001 11100111")
     print("observed: " + tt.to_string[PrintType.BIN]())
@@ -59,17 +159,17 @@ fn truth_table_test2():
 # CNF =  (1|2) & (3|4)
 # DNF =  (1&3) | (2&3) | (1&4) | (2&4)
 fn test_cnf2dnf_0():
+    alias SHOW_INFO = True
     alias DT = DType.uint32
-    alias n_bits = 8
+    alias N_BITS = 8
 
     var cnf1 = DynamicVector[SIMD[DT, 1]]()
     cnf1.push_back((1 << 1) | (1 << 2))
     cnf1.push_back((1 << 3) | (1 << 4))
 
-    alias SHOW_INFO = True
     print("expected CNF: (1|2) & (3|4)")
     print("observed CNF:" + cnf_to_string[DT](cnf1))
-    let dnf1 = convert_cnf_to_dnf[DT, SHOW_INFO](cnf1, n_bits)
+    let dnf1 = convert_cnf_to_dnf[DT, SHOW_INFO](cnf1, N_BITS)
     print("expected DNF: (1&3) | (2&3) | (1&4) | (2&4)")
     print("observed DNF:" + dnf_to_string[DT](dnf1))
 
@@ -78,7 +178,7 @@ fn test_cnf2dnf_0():
 # DNF =  (1&4&5) | (2&3&4&5) | (2&3&6) | (1&2&4&6) | (1&3&5&6)
 fn test_cnf2dnf_1():
     alias DT = DType.uint32
-    alias n_bits = 8
+    alias N_BITS = 8
 
     var cnf1 = DynamicVector[SIMD[DT, 1]]()
     cnf1.push_back((1 << 1) | (1 << 2))
@@ -95,7 +195,7 @@ fn test_cnf2dnf_1():
 
     print("expected CNF: (1|2) & (1|3) & (3|4) & (2|5) & (4|6) & (5|6)")
     print("observed CNF:" + cnf_to_string[DT](cnf1))
-    let dnf1 = convert_cnf_to_dnf[DT, True](cnf1, n_bits)
+    let dnf1 = convert_cnf_to_dnf[DT, True](cnf1, N_BITS)
     print("expected DNF: (1&4&5) | (2&3&4&5) | (2&3&6) | (1&2&4&6) | (1&3&5&6)")
     print("observed DNF:" + dnf_to_string[DT](dnf1))
 
@@ -219,13 +319,17 @@ fn test_cnf2dnf_very_hard():
     # CNF = (0 | 1 | 2 | 3) & (4 | 5 | 6 | 7) & (3 | 7 | 11) & (8 | 9 | 10 | 11) & (12 | 13 | 14 | 15) & (2 | 15 | 19) & (16 | 17 | 18 | 19) & (10 | 18 | 22) & (6 | 14 | 23) & (20 | 21 | 22 | 23) & (24 | 25 | 26 | 27) & (1 | 27 | 31) & (28 | 29 | 30 | 31) & (9 | 30 | 34) & (5 | 26 | 35) & (32 | 33 | 34 | 35) & (21 | 33 | 37) & (17 | 29 | 38) & (13 | 25 | 39) & (36 | 37 | 38 | 39) & (40 | 41 | 42 | 43) & (0 | 43 | 47) & (44 | 45 | 46 | 47) & (8 | 46 | 50) & (4 | 42 | 51) & (48 | 49 | 50 | 51) & (20 | 49 | 53) & (16 | 45 | 54) & (12 | 41 | 55) & (52 | 53 | 54 | 55) & (36 | 52 | 56) & (32 | 48 | 57) & (28 | 44 | 58) & (24 | 40 | 59) & (56 | 57 | 58 | 59)
 
     print("CNF = " + cnf_to_string[DT](cnf1))
-    let dnf1 = convert_cnf_to_dnf_minimal[DT, True, True](cnf1, n_bits)
+    alias EARLY_PRUNE = True
+    alias SHOW_INFO = True
+    let dnf1 = convert_cnf_to_dnf_minimal[DT, EARLY_PRUNE, SHOW_INFO](cnf1, n_bits)
     print("DNF = " + dnf_to_string[DT](dnf1))
 
 
 fn main():
-    truth_table_test1()
-    #truth_table_test2()
+    #truth_table_test1()
+    truth_table_test2()
+    #truth_table_test3()
+    #truth_table_test4()
 
     # test_cnf2dnf_0()
     # test_cnf2dnf_1()

@@ -7,8 +7,8 @@ from tools import get_bit, get_minterm_type
 from to_string import PrintType, minterms_to_string
 
 
-struct TruthTable[bit_width: Int, has_unknown: Bool = True](Stringable):
-    alias MinTermType: DType = get_minterm_type[bit_width]()
+struct TruthTable[N_BITS: Int, has_unknown: Bool = True](Stringable):
+    alias MinTermType: DType = get_minterm_type[N_BITS]()
 
     var data: DynamicVector[SIMD[Self.MinTermType, 1]]
     var is_sorted: Bool
@@ -29,7 +29,7 @@ struct TruthTable[bit_width: Int, has_unknown: Bool = True](Stringable):
 
     @always_inline("nodebug")
     fn set_true(inout self, value: Int):
-        alias max_value: Int = 1 << bit_width
+        alias max_value: Int = 1 << N_BITS
         if value < max_value:
             self.data.push_back(SIMD[Self.MinTermType, 1](value))
             self.is_sorted = False
@@ -38,11 +38,11 @@ struct TruthTable[bit_width: Int, has_unknown: Bool = True](Stringable):
     @always_inline("nodebug")
     fn get_value(self, idx: Int) -> Int:
         @parameter
-        if bit_width <= 8:
+        if N_BITS <= 8:
             return (self.data[idx] & 0xFF).to_int()
-        elif bit_width <= 16:
+        elif N_BITS <= 16:
             return (self.data[idx] & 0xFFFF).to_int()
-        elif bit_width <= 32:
+        elif N_BITS <= 32:
             return (self.data[idx] & 0xFFFF_FFFF).to_int()
         else:
             print("Not implemented yet")
@@ -51,11 +51,11 @@ struct TruthTable[bit_width: Int, has_unknown: Bool = True](Stringable):
     @always_inline("nodebug")
     fn get_unknown(self, idx: Int) -> Int:
         @parameter
-        if bit_width == 8:
+        if N_BITS == 8:
             return (self.data[idx] >> 8).to_int()
-        elif bit_width == 16:
+        elif N_BITS == 16:
             return (self.data[idx] >> 16).to_int()
-        elif bit_width == 32:
+        elif N_BITS == 32:
             return (self.data[idx] >> 32).to_int()
         else:
             print("Not implemented yet")
@@ -73,12 +73,11 @@ struct TruthTable[bit_width: Int, has_unknown: Bool = True](Stringable):
             return
         else:
             self.sort()
-
             @parameter
             if USE_CLASSIC_METHOD:
-                self.data = reduce_qm_classic[Self.MinTermType, bit_width, SHOW_INFO=SHOW_INFO](self.data)
+                self.data = reduce_qm_classic[Self.MinTermType, N_BITS, SHOW_INFO=SHOW_INFO](self.data)
             else:
-                self.data = reduce_qm[Self.MinTermType, bit_width, SHOW_INFO=SHOW_INFO](self.data)
+                self.data = reduce_qm[Self.MinTermType, N_BITS, SHOW_INFO=SHOW_INFO](self.data)
             self.is_minimized = True
 
     # trait Stringable
@@ -90,7 +89,7 @@ struct TruthTable[bit_width: Int, has_unknown: Bool = True](Stringable):
         return result + self.to_string[PrintType.VERBOSE]()
 
     fn to_string[P: PrintType](self) -> String:
-        return minterms_to_string[Self.MinTermType, P, 100](self.data, bit_width)
+        return minterms_to_string[Self.MinTermType, P, 100](self.data, N_BITS)
 
     fn print_blif(self) -> String:
         return "TODO"

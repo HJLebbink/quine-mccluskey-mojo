@@ -1,8 +1,8 @@
 from MintermSet import MintermSet
 from MyMap import MyMap, MySet
-from cnf_to_dnf import convert_cnf_to_dnf_minimal
+from cnf_to_dnf import convert_cnf_to_dnf_minimal, convert_cnf_to_dnf
 from tools import get_bit, get_dk_offset, get_dk_mask
-
+from to_string import PrintType, minterm_to_string, minterms_to_string, int_to_bin_string, cnf_to_string, dnf_to_string
 
 #alias PI = DType.uint8
 #alias MT = DType.uint8
@@ -39,12 +39,12 @@ fn convert_1to2[PI: DType, MT: DType](pi_table1: MyMap[PI, MySet[MT]]) -> MyMap[
         let mt = all_minterms.data[i]
         var set2 = MySet[PI]()
         for j in range(len(pi_table1)):
-            let x = pi_table1.keys[i]
-            let set = pi_table1.values[i]
+            let x = pi_table1.keys[j]
+            let set = pi_table1.values[j]
             if set.contains(mt):
                 set2.add(x)
         pi_table2.add(mt, set2 ^)
-    return pi_table2
+    return pi_table2^
 
 fn convert_2to1[PI: DType, MT: DType](pi_table2: MyMap[MT, MySet[PI]]) -> MyMap[PI, MySet[MT]]:
     return convert_1to2[MT, PI](pi_table2)
@@ -75,21 +75,22 @@ fn create_prime_implicant_table[PI: DType, MT: DType](
     prime_implicants: DynamicVector[SIMD[PI, 1]],
     minterms: DynamicVector[SIMD[MT, 1]],
 ) -> MyMap[PI, MySet[MT]]:
-    alias n_bits = get_dk_offset[PI]()
-    alias data_mask: SIMD[PI, 1] = get_dk_mask[PI]()
-
+    alias DK_OFFSET: Int = get_dk_offset[PI]()
+    alias DATA_MASK: SIMD[PI, 1] = get_dk_mask[PI]()
     var results = MyMap[PI, MySet[MT]]()
 
-    for i in range(prime_implicants.size):
+    for i in range(len(prime_implicants)):
         let pi: SIMD[PI, 1] = prime_implicants[i]
-        let dontknow: SIMD[PI, 1] = pi >> n_bits
-        let q = (data_mask & pi) | dontknow
+        let dont_know: SIMD[PI, 1] = (pi >> DK_OFFSET)
+        let q: SIMD[PI, 1] = (DATA_MASK & pi) | dont_know
+        #print("pi = " + minterm_to_string[PI, PrintType.BIN_VERBOSE](pi, 4) + "; dont_know=" + int_to_bin_string(dont_know, 4) +"; q = " + int_to_bin_string(q, 8))
         var set = MySet[MT]()
-        for j in range(minterms.size):
-            let mt: SIMD[MT, 1] = minterms[i]
-            if (mt.cast[PI]() | dontknow) == q:
+        for j in range(len(minterms)):
+            let mt: SIMD[MT, 1] = minterms[j]
+            #print("mt = " + minterm_to_string[MT, PrintType.BIN_VERBOSE](mt, 4))
+            if (mt.cast[PI]() | dont_know) == q:
+                #print("INFO: e03f53aa: create_prime_implicant_table: inserting mt " + minterm_to_string[MT, PrintType.BIN_VERBOSE](mt, 4) +"; " + int_to_bin_string(mt, 8)) 
                 set.add(mt)
-                print("INFO: create_prime_implicant_table: inserting mt " + str(mt))
         results.add(pi, set ^)
     return results
 
@@ -127,13 +128,11 @@ fn create_prime_implicant_table[PI: DType, MT: DType](
 fn identify_primary_essential_pi2[PI: DType, MT: DType](pi_table2: MyMap[MT, MySet[PI]]) -> TmpStruct1[PI, MT]:
     # find distinguished row and selected primary essential implicants
     var selected_pi = MySet[PI]()
+
     for i in range(len(pi_table2)):
         let pi_set: MySet[PI] = pi_table2.values[i]
         if len(pi_set) == 1:  # we found a distinguished row / minterm mt
             selected_pi.add(pi_set.data[0])
-        else:
-            pass
-            # Note: here we have a choice; we found a distinghuished row yet another minterm was selected as essential prime implicant
 
     var mt_to_be_deleted = DynamicVector[SIMD[MT, 1]]()
     for i in range(len(pi_table2)):
@@ -148,8 +147,11 @@ fn identify_primary_essential_pi2[PI: DType, MT: DType](pi_table2: MyMap[MT, MyS
     var result = TmpStruct1[PI, MT]()
     result.pi_table2 = pi_table2
 
-    for i in range(mt_to_be_deleted.size):
+    for i in range(len(mt_to_be_deleted)):
         result.pi_table2.remove(mt_to_be_deleted[i])
+
+    for i in range(len(selected_pi)):
+        result.essential_pi.push_back(selected_pi.data[i])
 
     return result ^
 
@@ -170,8 +172,7 @@ fn subset[T: DType](sub_set: MySet[T], super_set: MySet[T]) -> Bool:
     return True
 
 
-#    [[nodiscard]] inline PI_table_2 row_dominance(const PI_table_2& pi_table2)
-#    {
+#    [[nodiscard]] inline PI_table_2 row_dominance(const PI_table_2& pi_table2) {
 #        std::set<MT> mt_to_be_deleted;
 #        for (const auto& [mt1, pi_set1] : pi_table2) {
 #            if (!mt_to_be_deleted.contains(mt1)) {
@@ -197,7 +198,7 @@ fn row_dominance[PI: DType, MT: DType](pi_table2: MyMap[MT, MySet[PI]]) -> MyMap
             for j in range(len(pi_table2)):
                 let mt2 = pi_table2.keys[j]
                 let pi_set2 = pi_table2.values[j]
-                if mt1 != mt2 & subset(pi_set1, pi_set2):
+                if (mt1 != mt2) & subset(pi_set1, pi_set2):
                     mt_to_be_deleted.add(mt2)
     var pi_table1_out = pi_table2
     for i in range(len(mt_to_be_deleted)):
@@ -299,62 +300,67 @@ fn column_dominance[PI: DType, MT: DType](pi_table2: MyMap[MT, MySet[PI]]) -> My
 #       }
 #       return result;
 #   }
-fn petricks_method[PI: DType, MT: DType](
+fn petricks_method[PI: DType, MT: DType, N_BITS: Int, SHOW_INFO: Bool](
     pi_table2: MyMap[MT, MySet[PI]],
 ) -> DynamicVector[DynamicVector[SIMD[PI, 1]]]:
-    # create translation to translate the pi table to a cnf
-    alias VariableType = DType.uint32
+    alias VT = DType.uint32 # variable Type
 
-    var translation1 = MyMap[PI, SIMD[VariableType, 1]]()
-    var translation2 = MyMap[VariableType, SIMD[PI, 1]]()
-    var variable_id: SIMD[VariableType, 1] = 0
+    # create translation to translate the pi table to a cnf
+    var translation1 = MyMap[PI, SIMD[VT, 1]]()
+    var translation2 = MyMap[VT, SIMD[PI, 1]]()
+    var variable_id: SIMD[VT, 1] = 0
 
     for i in range(len(pi_table2)):
-        let mt = pi_table2.keys[i]
-        let pi_set = pi_table2.values[i]
+        let mt: SIMD[MT, 1] = pi_table2.keys[i]
+        let pi_set: MySet[PI] = pi_table2.values[i]
         for j in range(len(pi_set)):
-            let pi = pi_set.data[j]
+            let pi: SIMD[PI, 1] = pi_set.data[j]
             if not translation1.contains(pi):
                 translation1.add(pi, variable_id)
                 translation2.add(variable_id, pi)
                 variable_id += 1
 
     # give an error if we have too many variables
-    let n_variables = variable_id.to_int()
+    let n_variables = variable_id
     if n_variables > 64:
         print("ERROR: too many variables (" + str(n_variables) + ") for cnf_to_dnf")
 
     # convert pi table to cnf
-    let contant: UInt64 = 0  # NOTE to prevent a bug
-
-    alias DT = UInt64
-    var cnf = DynamicVector[DT]()
+    alias Q = DType.uint64
+    var cnf = DynamicVector[SIMD[Q, 1]]()
     for i in range(len(pi_table2)):
-        let mt = pi_table2.keys[i]
-        let pi_set = pi_table2.values[i]
-        var disjunction = contant
+        let mt: SIMD[MT, 1] = pi_table2.keys[i]
+        let pi_set: MySet[PI] = pi_table2.values[i]
+        var disjunction: SIMD[Q, 1] = 0
         for j in range(len(pi_set)):
-            let pi = pi_set.data[j]
-            disjunction |= 1 << translation1.get(pi).cast[DT.element_type]()
+            let pi: SIMD[PI, 1] = pi_set.data[j]
+            let mt: SIMD[VT, 1] = translation1.get(pi)
+            disjunction |= 1 << mt.cast[Q]()
         cnf.push_back(disjunction)
 
     # convert cnf to dnf
-    # print("CNF = " + cnf_to_string(cnf))
-    let smallest_conjuctions = convert_cnf_to_dnf_minimal[DT.element_type, True, True](
-        cnf, n_variables
-    )
-    # print("DNF = " + dnf_to_string(dnf))
+    @parameter
+    if SHOW_INFO:
+        print("INFO: dee2adb6: CNF = " + cnf_to_string[Q](cnf))
+
+    alias EARLY_PRUNE = True
+    let smallest_conjunctions = convert_cnf_to_dnf_minimal[Q, EARLY_PRUNE=EARLY_PRUNE, SHOW_INFO=SHOW_INFO](cnf, n_variables.to_int())
+
+    @parameter
+    if SHOW_INFO:
+        print("INFO: 756c1db8: DNF = " + dnf_to_string[Q](smallest_conjunctions))
 
     # translate the smallest conjunctions back
     var result = DynamicVector[DynamicVector[SIMD[PI, 1]]]()
-    for i in range(len(smallest_conjuctions)):
-        let conj: DT = smallest_conjuctions[i]
+    for i in range(len(smallest_conjunctions)):
+        let conj: SIMD[Q, 1] = smallest_conjunctions[i]
         var x = DynamicVector[SIMD[PI, 1]]()
-        for j in range(64):
-            if tools.get_bit(conj, j):
-                x.push_back(translation2.get(j))
-        result.push_back(x ^)
-
+        for j in range(Q.sizeof()*8):
+            if tools.get_bit[Q](conj, j):
+                let key: SIMD[VT, 1] = SIMD[VT, 1](j)
+                let pi: SIMD[PI, 1] = translation2.get(key)
+                x.push_back(pi)
+        result.push_back(x)
     return result
 
 
@@ -458,83 +464,178 @@ struct TmpStruct1[PI: DType, MT: DType]:
         self.pi_table2 = existing.pi_table2 ^
         self.essential_pi = existing.essential_pi ^
 
+fn to_string_pi_table1[N_BITS: Int, PI: DType, MT: DType](pi_table1: MyMap[PI, MySet[MT]]) -> String:
+    var all_minterms = MySet[MT]()
+    for i in range(len(pi_table1)):
+        all_minterms.add(pi_table1.values[i])
+
+    var result: String = "\t"
+    for i in range(len(pi_table1)):
+        let pi = pi_table1.keys[i]
+        result += minterm_to_string[PI, PrintType.BIN](pi, N_BITS) + " "
+    result += "\n"
+
+    for i in range(len(all_minterms)):
+        let mt = all_minterms.data[i]
+        var covered_by_prime_implicants = 0
+        var tmp: String = ""
+        for j in range(len(pi_table1)):
+            let mt_set = pi_table1.values[j]
+            if mt_set.contains(mt):
+                tmp += "X"
+                covered_by_prime_implicants += 1
+            else:
+                tmp += "."
+        result += minterm_to_string[MT, PrintType.BIN](mt, N_BITS)
+        if covered_by_prime_implicants == 1:
+            result += "*" # found a distinguished row
+        result += "\t|" + tmp + "\n"
+    return result
+
+
+fn to_string_pi_table2[N_BITS: Int, PI: DType, MT: DType](pi_table2: MyMap[MT, MySet[PI]]) -> String:
+    if len(pi_table2) == 0:
+        return "EMPTY"
+
+    var all_pi = MySet[PI]()
+    for i in range(len(pi_table2)):
+        all_pi.add(pi_table2.values[i])
+
+    var result: String = "\t"
+    for i in range(len(all_pi)):
+        let pi: SIMD[PI, 1] = all_pi.data[i]
+        result += minterm_to_string[PI, PrintType.BIN](pi, N_BITS) + " "
+    result += "\n"
+
+    for i in range(len(pi_table2)):
+        let mt: SIMD[MT, 1] = pi_table2.keys[i]
+        let pi_set = pi_table2.values[i]
+
+        result += minterm_to_string[MT, PrintType.BIN](mt, N_BITS) + "\t|"
+        for j in range(len(all_pi)):
+            let pi: SIMD[PI, 1] = all_pi.data[j]
+            if pi_set.contains(pi):
+                result += "X"
+            else:
+                result += "."
+        result += "\n"
+    return result
+
+
+fn print_pi_table1_raw[PI: DType, MT: DType, N_BITS: Int](pi_table1: MyMap[PI, MySet[MT]]):
+    for i in range(len(pi_table1)):
+        let pi = pi_table1.keys[i]
+        let mt_set = pi_table1.values[i]
+        print_no_newline(minterm_to_string[PI, PrintType.BIN](pi, N_BITS) + " -> ")
+        for j in range(len(mt_set)):
+            print_no_newline(minterm_to_string[MT, PrintType.BIN](mt_set.data[j], N_BITS) + " ")
+        print("")
+
 
 fn petrick_simplify[
-   PI: DType, MT: DType, bit_width: Int, SHOW_INFO: Bool = True
+   PI: DType, MT: DType, N_BITS: Int, SHOW_INFO: Bool = True
 ](
     prime_implicants: DynamicVector[SIMD[PI, 1]],
     minterms: DynamicVector[SIMD[MT, 1]],
 ) -> DynamicVector[SIMD[PI, 1]]:
-    let n_variables: Int = len(prime_implicants)
-    var names = DynamicVector[String](n_variables)
-    for i in range(n_variables):
-        names.push_back("v" + str(i))
 
     # 1] create prime implicant table
     let pi_table1: MyMap[PI, MySet[MT]] = create_prime_implicant_table[PI, MT](prime_implicants, minterms)
+    #print_pi_table1_raw[PI, MT, N_BITS](pi_table1)
 
     @parameter
     if SHOW_INFO:
-        print("1] created prime implicant table: #pi " + str(len(pi_table1)))
-        # print(to_string_pi_table1(pi_table1, n_variabes, names))
+        print("1] created PI table: number of PIs = " + str(len(pi_table1)))
+        print(to_string_pi_table1[N_BITS, PI, MT](pi_table1))
 
     # 2] identify primary essential prime implicants
-    #        const auto [pi_table2, primary_essential_pi] = identify_primary_essential_pi2(convert(pi_table1));
-    var primary: TmpStruct1[PI, MT] = identify_primary_essential_pi2[PI, MT](convert_1to2[PI, MT](pi_table1))
+    let primary: TmpStruct1[PI, MT] = identify_primary_essential_pi2[PI, MT](convert_1to2[PI, MT](pi_table1))
+    #print_pi_table1_raw[MT, PI, N_BITS](primary.pi_table2)
 
     @parameter
     if SHOW_INFO:
-        pass
-    #        if constexpr (!QUIET) std::cout << "2] identified primary essential prime implicants: #essential pi " << primary_essential_pi.size() << "; #pi remaining = " << pi_table2.size() << std::endl;
-    #        //if constexpr (!QUIET) std::cout << "Primary essential pi: " << prime_implicant_to_string(primary_essential_pi, n_variables, names) << std::endl;
-    #        if constexpr (!QUIET) std::cout << to_string_pi_table2(pi_table2, n_variables, names) << std::endl;
+        print("2] identified primary essential PIs: number of essential PIs = " + str(len(primary.essential_pi)) + "; number of remaining PIs = " + str(len(primary.pi_table2)))
+        #//if constexpr (SHOW_INFO) std::cout << "Primary essential pi: " << minterms_to_string(pi_width, primary_essential_pi) << std::endl;
+        print(to_string_pi_table2[N_BITS, PI, MT](primary.pi_table2))
 
+
+    #print_pi_table1_raw[MT, PI, N_BITS](primary.pi_table2)
     let pi_table3: MyMap[MT, MySet[PI]] = row_dominance[PI, MT](primary.pi_table2)
-    #        if constexpr (!QUIET) std::cout << "3] reduced based on row dominance: #pi remaining = " << pi_table3.size() << std::endl;
-    #        if constexpr (!QUIET) std::cout << to_string_pi_table2(pi_table3, n_variables, names) << std::endl;
+    @parameter
+    if SHOW_INFO:
+        print("3] reduced based on row dominance: number of PIs remaining = " + str(len(pi_table3)))
+        print(to_string_pi_table2[N_BITS, PI, MT](pi_table3))
 
-    let x = column_dominance[PI, MT](pi_table3)
-    let pi_table4: MyMap[MT, MySet[PI]] = x
-    #        if constexpr (!QUIET) std::cout << "4] reduced based on column dominance: #pi remaining = " << pi_table4.size() << std::endl;
-    #        if constexpr (!QUIET) std::cout << to_string_pi_table2(pi_table4, n_variables, names) << std::endl;
+    let pi_table4: MyMap[MT, MySet[PI]] = column_dominance[PI, MT](pi_table3)
+    @parameter
+    if SHOW_INFO:
+        print("4] reduced based on column dominance: number of PIs remaining = " + str(len(pi_table4)))
+        print(to_string_pi_table2[N_BITS, PI, MT](pi_table4))
 
     # identify secondary essential prime implicants
     #        const auto [pi_table5, secondary_essential_pi] = identify_primary_essential_pi2(pi_table4);
     let secondary: TmpStruct1[PI, MT] = identify_primary_essential_pi2[PI, MT](pi_table4)
-    # let secondary_essential_pi = x2.get[1]()
-    #        if constexpr (!QUIET) std::cout << "5] identified secondary essential prime implicants: #essential pi " << secondary_essential_pi.size() << "; #pi remaining = " << pi_table5.size() << std::endl;
+    @parameter
+    if SHOW_INFO:
+        print("5] identified secondary essential PIs: number of essential PIs " + str(len(secondary.essential_pi)) + "; number of PIs remaining = " + str(len(secondary.pi_table2)))
     #        //if constexpr (!QUIET) std::cout << "Secondary essential pi: " << prime_implicant_to_string(secondary_essential_pi_b, n_variables, names) << std::endl;
-    #        if constexpr (!QUIET) std::cout << to_string_pi_table2(pi_table5, n_variables, names) << std::endl;
+        print(to_string_pi_table2[N_BITS, PI, MT](secondary.pi_table2))
 
     let pi_table6: MyMap[MT, MySet[PI]] = row_dominance[PI, MT](secondary.pi_table2)
-    #        if constexpr (!QUIET) std::cout << "6] reduced based on row dominance: #pi remaining = " << pi_table6.size() << std::endl;
-    #        if constexpr (!QUIET) std::cout << to_string_pi_table2(pi_table6, n_variables, names) << std::endl;
+    @parameter
+    if SHOW_INFO:
+        print("6] reduced based on row dominance: number of PIs remaining = " + str(len(pi_table6)))
+        print(to_string_pi_table2[N_BITS, PI, MT](pi_table6))
 
     let pi_table7: MyMap[MT, MySet[PI]] = column_dominance[PI, MT](pi_table6)
-    #        if constexpr (!QUIET) std::cout << "7] reduced based on column dominance: #pi remaining = " << pi_table7.size() << std::endl;
-    #        if constexpr (!QUIET) std::cout << to_string_pi_table2(pi_table7, n_variables, names) << std::endl;
+    @parameter
+    if SHOW_INFO:
+        print("7] reduced based on column dominance: number of PIs remaining = " + str(len(pi_table7)))
+        print(to_string_pi_table2[N_BITS, PI, MT](pi_table7))
 
     var essential_pi = DynamicVector[SIMD[PI, 1]]()
 
-    # remaining problem is a cyclic covering problem: use petricks method to find minimal solutions
-    #        const std::vector<std::vector<PI>> pi_vector_petricks = petricks_method(pi_table7);
-    #        // take the first from Petricks method
-    #        if (!pi_vector_petricks.empty()) {
-    #            for (const PI& pi : pi_vector_petricks[0]) {
-    #                essential_pi.push_back(pi);
-    #            }
-    #        }
-    let pi_vector_petricks = petricks_method[PI, MT](pi_table7)
-    # take the first from Petricks method
-    if len(pi_vector_petricks) > 0:
-        let x = pi_vector_petricks[0]
-        for i in range(x.size):
-            essential_pi.push_back(x[i])
+    if len(pi_table7) > 0:
+        # remaining problem is a cyclic covering problem: use petricks method to find minimal solutions
+        #        const std::vector<std::vector<PI>> pi_vector_petricks = petricks_method(pi_table7);
+        #        // take the first from Petricks method
+        #        if (!pi_vector_petricks.empty()) {
+        #            for (const PI& pi : pi_vector_petricks[0]) {
+        #                essential_pi.push_back(pi);
+        #            }
+        #        }
+        let pi_vector_petricks: DynamicVector[DynamicVector[SIMD[PI, 1]]] = petricks_method[PI, MT, N_BITS, SHOW_INFO](pi_table7)
+        # take the first from Petricks method
+        if len(pi_vector_petricks) > 0:
+            let x = pi_vector_petricks[0]
+            for i in range(x.size):
+                essential_pi.push_back(x[i])
+
+            @parameter
+            if SHOW_INFO:
+                print("8] reduce with Petricks method: number essential PIs = " + str(len(essential_pi)))
+                for i in range(len(pi_vector_petricks)):
+                    print("Petricks yield: " + minterms_to_string[PI](pi_vector_petricks[i], N_BITS))
+
+        else:
+            var pi_set = MySet[PI]()
+            for i in range(len(pi_table7)):
+                pi_set.add(pi_table7.values[i])
+            for i in range(len(pi_set)):
+                essential_pi.push_back(pi_set.data[i])
 
     for i in range(len(primary.essential_pi)):
         essential_pi.push_back(primary.essential_pi[i])
+        @parameter
+        if SHOW_INFO:
+            print("INFO: b650c460: adding primary essential PI to result: " + minterm_to_string[PI](primary.essential_pi[i], N_BITS))
 
     for i in range(len(secondary.essential_pi)):
         essential_pi.push_back(secondary.essential_pi[i])
+        @parameter
+        if SHOW_INFO:
+            print("INFO: e2c83d65: adding secondary essential PI to result: " + minterm_to_string[PI](secondary.essential_pi[i], N_BITS))
+
+    let n_variables: Int = len(prime_implicants)
 
     return essential_pi

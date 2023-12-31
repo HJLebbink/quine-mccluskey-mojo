@@ -42,12 +42,15 @@ fn replace_complements[T: DType](a: SIMD[T, 1], b: SIMD[T, 1]) -> SIMD[T, 1]:
 
 
 fn reduce_minterms_CLASSIC[
-    T: DType, SHOW_INFO: Bool
+    T: DType, N_BITS: Int, SHOW_INFO: Bool
 ](minterms: DynamicVector[SIMD[T, 1]]) -> DynamicVector[SIMD[T, 1]]:
+
+    alias P = PrintType.BIN
     @parameter
     if SHOW_INFO:
-        print("reduce_minterms_CLASSIC")
+        print("INFO: 65525e46: entering reduce_minterms_CLASSIC")
 
+    var total_comparisons = 0
     let max = minterms.size
     var checked = DynamicVector[SIMD[DType.bool, 1]](max)
     for i in range(max):
@@ -55,7 +58,11 @@ fn reduce_minterms_CLASSIC[
     var new_minterms = MySet[T]()
     for i in range(max):
         let term_i = minterms[i]
-        for j in range(i, max):
+        for j in range(i + 1, max):
+            @parameter
+            if SHOW_INFO:
+                total_comparisons += 1
+
             let term_j = minterms[j]
             # If a gray code pair is found, replace the bit position that differs with a don't care.
             if is_gray_code(term_i, term_j):
@@ -64,29 +71,36 @@ fn reduce_minterms_CLASSIC[
                 let new_mt = replace_complements[T](term_i, term_j)
                 @parameter
                 if SHOW_INFO:
-                    print("INFO: 09f28d3a: term_i:" + minterm_to_string[T](term_i, 3))
-                    print("INFO: 2d17146f: term_j:" + minterm_to_string[T](term_j, 3))
-                    print("INFO: 313a49ea: new_mt:" + minterm_to_string[T](new_mt, 3))
+                    print_no_newline("INFO: 09f28d3a: term_i:" + minterm_to_string[T, P](term_i, N_BITS))
+                    print_no_newline("; term_j:" + minterm_to_string[T, P](term_j, N_BITS))
+                    print("; new_mt:" + minterm_to_string[T, P](new_mt, N_BITS))
                 new_minterms.add(new_mt)
+
+    @parameter
+    if SHOW_INFO:
+        print("INFO: 393bb38d: total_comparisons = " + str(total_comparisons))
 
     # appending all reduced terms to a new vector
     for i in range(max):
         if not checked[i]:
+            @parameter
+            if SHOW_INFO:
+                print("INFO: 6dc50c80: adding existing minterm:" + minterm_to_string[T, P](minterms[i], N_BITS))
             new_minterms.add(minterms[i])
 
     return new_minterms.data
 
 
 fn reduce_minterms[
-    T: DType, bit_width: Int, SHOW_INFO: Bool
-](minterms: MintermSet[T, bit_width]) -> MintermSet[T, bit_width]:
+    T: DType, N_BITS: Int, SHOW_INFO: Bool
+](minterms: MintermSet[T, N_BITS]) -> MintermSet[T, N_BITS]:
     @parameter
     if SHOW_INFO:
-        print("reduce_minterms")
+        print("INFO: a0ab5759: entering: reduce_minterms")
 
     var total_comparisons: Int = 0
-    var new_minterms = MintermSet[T, bit_width]()
-    var checked_X = Checked[bit_width]()
+    var new_minterms = MintermSet[T, N_BITS]()
+    var checked_X = Checked[N_BITS]()
     let max_bit_count = minterms.max_bit_count
 
     #print("INFO: 491ff4b6: max_bit_count=" + str(max_bit_count))
@@ -134,14 +148,14 @@ fn reduce_minterms[
                     let new_mt = replace_complements(term_i, term_j)
                     @parameter
                     if SHOW_INFO:
-                        print("INFO: 09f28d3a: term_i:" + minterm_to_string[T](term_i, bit_width))
-                        print("INFO: 2d17146f: term_j:" + minterm_to_string[T](term_j, bit_width))
-                        print("INFO: 313a49ea: new_mt:" + minterm_to_string[T](new_mt, bit_width))
+                        print_no_newline("INFO: 09f28d3a: term_i:" + minterm_to_string[T](term_i, N_BITS))
+                        print_no_newline("; term_j:" + minterm_to_string[T](term_j, N_BITS))
+                        print("; new_mt:" + minterm_to_string[T](new_mt, N_BITS))
                     new_minterms.add(new_mt)
     @parameter
     if SHOW_INFO:
         print("INFO: 393bb38d: total_comparisons=" + str(total_comparisons))
-        print("INFO: 0fa954e7: new_minterms=" + new_minterms.to_string[PrintType.BIN](bit_width))
+        #print("INFO: 0fa954e7: new_minterms=" + new_minterms.to_string[PrintType.BIN](N_BITS))
 
     for bit_count in range(max_bit_count + 1):
         let checked_i = checked_X.at(bit_count)
@@ -155,14 +169,14 @@ fn reduce_minterms[
 
 
 fn reduce_qm_classic[
-    T: DType, bit_width: Int, SHOW_INFO: Bool = False
+    T: DType, N_BITS: Int, SHOW_INFO: Bool
 ](owned minterms_input: DynamicVector[SIMD[T, 1]]) -> DynamicVector[SIMD[T, 1]]:
     var minterms = minterms_input
     var iteration: Int = 0
     var fixed_point: Bool = False
 
     while not fixed_point:
-        let next_minterms = reduce_minterms_CLASSIC[T, SHOW_INFO](minterms)
+        let next_minterms = reduce_minterms_CLASSIC[T, N_BITS, SHOW_INFO](minterms)
 
         @parameter
         if SHOW_INFO:
@@ -176,34 +190,32 @@ fn reduce_qm_classic[
             )
             print(
                 "INFO: 49ecfd1e: old minterms = "
-                + minterms_to_string[T](minterms, bit_width)
+                + minterms_to_string[T](minterms, N_BITS)
             )
             print(
                 "INFO: ed11b7c0: new minterms = "
-                + minterms_to_string[T](next_minterms, bit_width)
+                + minterms_to_string[T](next_minterms, N_BITS)
             )
             iteration += 1
 
         # both are sorted, minterms is not sorted the first iteration, but that is ok.
         fixed_point = eq_dynamic_vector[T](minterms, next_minterms)
-        #print("INFO: ada1cdf5: fixed_point=" + str(fixed_point))
         minterms = next_minterms^
 
-    #return petrick_simplify[T, T, bit_width, SHOW_INFO](minterms, minterms_input)
-    return minterms
+    return petrick_simplify[T, T, N_BITS, SHOW_INFO](minterms, minterms_input)
 
 
 fn reduce_qm[
-    T: DType, bit_width: Int, SHOW_INFO: Bool = False
+    T: DType, N_BITS: Int, SHOW_INFO: Bool = False
 ](owned minterms_input: DynamicVector[SIMD[T, 1]]) -> DynamicVector[SIMD[T, 1]]:
     var iteration: Int = 0
     var fixed_point: Bool = False
-    var minterms = MintermSet[T, bit_width]()
+    var minterms = MintermSet[T, N_BITS]()
     for i in range(len(minterms_input)):
         minterms.add[check_duplicate=False, SHOW_INFO=SHOW_INFO](minterms_input[i])
 
     while not fixed_point:
-        let next_minterms = reduce_minterms[T, bit_width, SHOW_INFO](minterms)
+        let next_minterms = reduce_minterms[T, N_BITS, SHOW_INFO](minterms)
 
         @parameter
         if SHOW_INFO:
@@ -215,14 +227,12 @@ fn reduce_qm[
                 + "; next minterms "
                 + len(next_minterms)
             )
-            print( "INFO: 49ecfd1e: old minterms = " + minterms.to_string[PrintType.BIN](bit_width))
-            print( "INFO: ed11b7c0: new minterms = " + next_minterms.to_string[PrintType.BIN](bit_width))
+            print( "INFO: 49ecfd1e: old minterms = " + minterms.to_string[PrintType.BIN](N_BITS))
+            print( "INFO: ed11b7c0: new minterms = " + next_minterms.to_string[PrintType.BIN](N_BITS))
             iteration += 1
 
-        # both are sorted, minterms is not sorted the first iteration, but that is ok.
         fixed_point = minterms == next_minterms
-        #print("INFO: ada1cdf5: fixed_point=" + str(fixed_point))
         minterms = next_minterms^
 
-    # return petrick_simplify[bit_width, SHOW_INFO](minterms, minterms_input)
-    return minterms.to_dynamic_vector()
+    let minterms_vec = minterms.to_dynamic_vector()
+    return petrick_simplify[T, T, N_BITS, SHOW_INFO](minterms_vec, minterms_input)

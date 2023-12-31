@@ -51,18 +51,25 @@ struct MyMap[Key: DType, Value: CollectionElement](
         self.values.push_back(value ^)
 
     fn remove(inout self, key: SIMD[Key, 1]):
-        for i in range(len(self.keys)):
+        let size = len(self.keys)
+        for i in range(size):
             if key == self.keys[i]:
-                self.keys[i] = self.keys.pop_back()
-                self.values[i] = self.values.pop_back()
+                if i == size-1:
+                    _ = self.keys.pop_back()
+                    _ = self.values.pop_back()
+                else:
+                    self.keys[i] = self.keys.pop_back()
+                    self.values[i] = self.values.pop_back()
                 return
 
     fn get(self, key: SIMD[Key, 1]) -> Value:
         for i in range(len(self.keys)):
             if key == self.keys[i]:
                 return self.values[i]
-        return 0
+        print("ERROR: cannot return an empty element")
+        return self.values[0]
 
+    @always_inline("nodebug")
     fn contains(self, key: SIMD[Key, 1]) -> Bool:
         for i in range(len(self.keys)):
             if key == self.keys[i]:
@@ -119,6 +126,7 @@ struct MySet[Value: DType](CollectionElement, Sized, Stringable):
             # this can be done more efficient
             self.add(values.data[i])
 
+    @always_inline("nodebug")
     fn contains(self, value: SIMD[Value, 1]) -> Bool:
         for i in range(len(self.data)):
             if value == self.data[i]:

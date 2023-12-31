@@ -86,18 +86,18 @@ struct MintermSet[T: DType, bit_width: Int](CollectionElement, Sized, Stringable
         alias dk_mask: SIMD[T, 1] = get_dk_mask[T]()
         let n_bits_set = ctpop(value & dk_mask).to_int()
 
-        @parameter
-        if SHOW_INFO:
-            print("INFO: 7bd7968f: adding value: check_duplicate=" +str(check_duplicate) +"; value=" + minterm_to_string[T, PrintType.VERBOSE](value, bit_width) + "; n_bits_set="+str(n_bits_set))
+        #@parameter
+        #if SHOW_INFO:
+            #print("INFO: 7bd7968f: adding value: check_duplicate=" +str(check_duplicate) +"; value=" + minterm_to_string[T, PrintType.VERBOSE](value, bit_width) + "; n_bits_set="+str(n_bits_set))
 
         self.n_elements += 1
 
         if self.max_bit_count < n_bits_set:
             self.max_bit_count = n_bits_set
 
-        @parameter
-        if SHOW_INFO:
-            print("INFO: currently present: n_bits_set=" + str(n_bits_set) + "; size=" + str(self.data[n_bits_set].size))
+        #@parameter
+        #if SHOW_INFO:
+            #print("INFO: currently present: n_bits_set=" + str(n_bits_set) + "; size=" + str(self.data[n_bits_set].size))
 
         @parameter
         if check_duplicate:

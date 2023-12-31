@@ -11,6 +11,7 @@ struct PrintType(Stringable):
     alias VERBOSE = PrintType(0)
     alias HEX = PrintType(1)
     alias BIN = PrintType(2)
+    alias BIN_VERBOSE = PrintType(3)
 
     fn __eq__(self: Self, other: PrintType) -> Bool:
         return self.value == other.value
@@ -25,6 +26,8 @@ struct PrintType(Stringable):
             return "HEX"
         elif self == PrintType.BIN:
             return "BIN"
+        elif self == PrintType.BIN_VERBOSE:
+            return "BIN_VERBOSE"
         else:
             return "UNKNOWN"
 
@@ -116,7 +119,7 @@ fn cnf_dnf_to_string2[is_cnf: Bool](cnf: DynamicVector[DynamicVector[String]]) -
 
 
 fn minterms_to_string[
-    T: DType, P: PrintType = PrintType.BIN, cap: Int = 10
+    T: DType, P: PrintType = PrintType.BIN, cap: Int = 30
 ](minterms: DynamicVector[SIMD[T, 1]], n_vars: Int) -> String:
     var result: String = ""
     let s = math.min(len(minterms), cap)
@@ -132,22 +135,24 @@ fn minterms_to_string[
     return result
 
 
-fn minterm_to_string[T: DType, P: PrintType = PrintType.VERBOSE](mt: SIMD[T, 1], n_vars: Int) -> String:
+fn minterm_to_string[T: DType, P: PrintType = PrintType.BIN](mt: SIMD[T, 1], n_bits: Int) -> String:
     @parameter
     if P == PrintType.BIN:
-        return minterm_to_bin_string(mt, n_vars)
+        return minterm_to_bin_string(mt, n_bits)
+    elif P == PrintType.BIN_VERBOSE:
+        return minterm_to_bin_string(mt, n_bits) + " (" + int_to_bin_string(mt, n_bits*2)+")"
     elif P == PrintType.VERBOSE:
-        return minterm_to_bin_string(mt, n_vars) + "=" + str(mt)
+        return minterm_to_bin_string(mt, n_bits) + "=" + str(mt)
     else:
         return "ERROR"
 
 
-fn minterm_to_bin_string[T: DType](mt: SIMD[T, 1], n_vars: Int) -> String:
+fn minterm_to_bin_string[T: DType](mt: SIMD[T, 1], n_bits: Int) -> String:
     alias dk_offset: Int = get_dk_offset[T]()
     #print("INFO minterm_to_bin_string dk_offset "+str(dk_offset))
     var result: String = ""
-    for i in range(n_vars):
-        let pos = (n_vars - i) - 1 # traverse in backwards order
+    for i in range(n_bits):
+        let pos = (n_bits - i) - 1 # traverse in backwards order
         let pos_X = pos + dk_offset
         #print("pos "+str(pos)+"; pos_X " + str(pos_X))
         if tools.get_bit(mt, pos_X):
@@ -157,5 +162,17 @@ fn minterm_to_bin_string[T: DType](mt: SIMD[T, 1], n_vars: Int) -> String:
         else:
             result += "0"
     return result
+
+
+fn int_to_bin_string[T: DType](v: SIMD[T, 1], n_bits: Int) -> String:
+    var result: String = ""
+    for i in range(n_bits):
+        let pos = (n_bits - i) - 1 # traverse in backwards order
+        if tools.get_bit(v, pos):
+            result += "1"
+        else:
+            result += "0"
+    return result
+
 
 
