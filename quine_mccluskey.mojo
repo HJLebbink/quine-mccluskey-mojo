@@ -106,7 +106,6 @@ fn reduce_minterms[
     #print("INFO: 491ff4b6: max_bit_count=" + str(max_bit_count))
 
     for bit_count in range(max_bit_count + 1):
-        #print("X6: bit_count="+str(bit_count))
         let max: Int = len(minterms.get(bit_count))
         #print("INFO: f6241b1f: bit_count = " + str(bit_count) + "; max = " + str(max))
         checked_X.init(bit_count, max)
