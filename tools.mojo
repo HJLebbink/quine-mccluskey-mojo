@@ -1,7 +1,6 @@
 from collections.vector import DynamicVector
 from algorithm.sort import sort
 
-
 fn get_bit[T: DType](v: SIMD[T, 1], pos: Int) -> Bool:
     return ((v >> pos) & 1) == 1
 
@@ -52,8 +51,6 @@ fn get_dk_mask[T: DType]() -> SIMD[T, 1]:
         return 0xFFFF_FFFF
 
 
-
-
 # delete index by moving the last element into the deleted index
 fn delete_index[T: DType](inout v: DynamicVector[SIMD[T, 1]], idx: Int):
     let s = v.size
@@ -74,7 +71,7 @@ fn delete_indices[
     for i in range(i_size):
         let j = (i_size - i) - 1
         delete_index[T](v, indices[j])
-        
+
 
 fn eq_dynamic_vector[
     T: DType
@@ -86,3 +83,6 @@ fn eq_dynamic_vector[
             return False
     return True
 
+
+fn my_cast[T: DType, SIZE: Int](v: DynamicVector[SIMD[T, SIZE]]) -> DTypePointer[T]:
+    return rebind[DTypePointer[T]](v.data.value)

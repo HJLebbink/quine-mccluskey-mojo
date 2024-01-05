@@ -90,7 +90,7 @@ fn reduce_minterms_CLASSIC[
 
     return new_minterms.data
 
-
+@always_inline("nodebug")
 fn reduce_minterms[
     T: DType, N_BITS: Int, SHOW_INFO: Bool
 ](minterms: MintermSet[T, N_BITS]) -> MintermSet[T, N_BITS]:

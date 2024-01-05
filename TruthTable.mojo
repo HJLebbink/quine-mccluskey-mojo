@@ -68,6 +68,7 @@ struct TruthTable[N_BITS: Int, has_unknown: Bool = True](Stringable):
             sort[Self.MinTermType](self.data)
             self.is_sorted = True
 
+    @always_inline("nodebug")
     fn minimize[USE_CLASSIC_METHOD: Bool = False, SHOW_INFO: Bool = False](inout self):
         if self.is_minimized:
             return

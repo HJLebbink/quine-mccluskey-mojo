@@ -15,6 +15,7 @@ from to_string import (
 )
 
 
+@always_inline("nodebug")
 fn truth_table_test1():
     alias SHOW_INFO = False
 
@@ -46,6 +47,7 @@ fn truth_table_test1():
 
 
 # example needs Petricks method; has no primary essential prime implicants
+@always_inline("nodebug")
 fn truth_table_test2():
     alias SHOW_INFO = False
 
@@ -95,6 +97,7 @@ fn truth_table_test2():
     # 10XX X10X 0X1X XX11
 
 
+@always_inline("nodebug")
 fn truth_table_test3():
     alias SHOW_INFO = False
 
@@ -142,7 +145,7 @@ fn truth_table_test3():
     # B D + B' D' + A D' + C D'  // result from logic Friday
     # X1X1 X0X0 1XX0 XX10  : identical with thormae
 
-
+@always_inline("nodebug")
 fn truth_table_test4():
     alias SHOW_INFO = True
 
@@ -161,6 +164,7 @@ fn truth_table_test4():
 
 # CNF =  (1|2) & (3|4)
 # DNF =  (1&3) | (2&3) | (1&4) | (2&4)
+@always_inline("nodebug")
 fn test_cnf2dnf_0[QUIET: Bool = False]():
     alias SHOW_INFO = False
     alias DT = DType.uint32
@@ -261,8 +265,8 @@ fn test_cnf2dnf_3[QUIET: Bool = False]():
     if not QUIET:
         print("CNF = " + cnf_to_string[DT](cnf1))
 
-    let dnf1 = convert_cnf_to_dnf[DT, False](cnf1, n_bits)
-    #let dnf1 = convert_cnf_to_dnf_minimal[DT, True, False](cnf1, n_bits)
+    #let dnf1 = convert_cnf_to_dnf[DT, False](cnf1, n_bits)
+    let dnf1 = convert_cnf_to_dnf_minimal[DT, True, False](cnf1, n_bits)
 
     @parameter
     if not QUIET:
@@ -287,7 +291,9 @@ fn test_cnf2dnf_4[QUIET: Bool = False]():
     if not QUIET:
         print("CNF = " + cnf_to_string[DT](cnf1))
 
-    let dnf1 = convert_cnf_to_dnf_minimal[DT, True, False](cnf1, n_bits)
+    alias EARLY_PRUNE = True
+    alias SHOW_INFO = False
+    let dnf1 = convert_cnf_to_dnf_minimal[DT, EARLY_PRUNE, SHOW_INFO](cnf1, n_bits)
 
     @parameter
     if not QUIET:
@@ -366,8 +372,32 @@ fn test_cnf2dnf_very_hard[QUIET: Bool = False]():
     if not QUIET:
         print("CNF = " + cnf_to_string[DT](cnf1))
 
+
+#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 2 of 35; result_dnf_next=16; n_pruned=0; n_not_prunned=48; max_size=35; smallest_cnf_size=2
+#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 3 of 35; result_dnf_next=37; n_pruned=0; n_not_prunned=64; max_size=35; smallest_cnf_size=3
+#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 4 of 35; result_dnf_next=148; n_pruned=0; n_not_prunned=148; max_size=35; smallest_cnf_size=4
+#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 5 of 35; result_dnf_next=175; n_pruned=0; n_not_prunned=444; max_size=34; smallest_cnf_size=4
+#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 6 of 35; result_dnf_next=403; n_pruned=0; n_not_prunned=700; max_size=34; smallest_cnf_size=5
+#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 7 of 35; result_dnf_next=547; n_pruned=0; n_not_prunned=1209; max_size=33; smallest_cnf_size=5
+#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 8 of 35; result_dnf_next=707; n_pruned=0; n_not_prunned=1641; max_size=32; smallest_cnf_size=5
+#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 9 of 35; result_dnf_next=1160; n_pruned=0; n_not_prunned=2828; max_size=32; smallest_cnf_size=6
+#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 10 of 35; result_dnf_next=4640; n_pruned=0; n_not_prunned=4640; max_size=32; smallest_cnf_size=7
+#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 11 of 35; result_dnf_next=6140; n_pruned=0; n_not_prunned=13920; max_size=31; smallest_cnf_size=7
+#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 12 of 35; result_dnf_next=14483; n_pruned=0; n_not_prunned=24560; max_size=31; smallest_cnf_size=8
+#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 13 of 35; result_dnf_next=21578; n_pruned=0; n_not_prunned=43449; max_size=30; smallest_cnf_size=8
+#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 14 of 35; result_dnf_next=31135; n_pruned=0; n_not_prunned=64734; max_size=29; smallest_cnf_size=8
+#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 15 of 35; result_dnf_next=51655; n_pruned=0; n_not_prunned=124540; max_size=29; smallest_cnf_size=9
+#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 16 of 35; result_dnf_next=84437; n_pruned=0; n_not_prunned=154965; max_size=28; smallest_cnf_size=9
+#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 17 of 35; result_dnf_next=134781; n_pruned=0; n_not_prunned=253311; max_size=27; smallest_cnf_size=9
+#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 18 of 35; result_dnf_next=209163; n_pruned=0; n_not_prunned=404343; max_size=27; smallest_cnf_size=10
+#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 19 of 35; result_dnf_next=272184; n_pruned=0; n_not_prunned=836652; max_size=26; smallest_cnf_size=1INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 20 of 35; result_dnf_next=1088736; n_pruned=0; n_not_prunned=1088736; max_size=26; smallest_cnf_size=11
+#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 21 of 35; result_dnf_next=1566900; n_pruned=0; n_not_prunned=3266208; max_size=25; smallest_cnf_size=11
+
+
+
+
     alias EARLY_PRUNE = True
-    alias SHOW_INFO = False
+    alias SHOW_INFO = True
     let dnf1 = convert_cnf_to_dnf_minimal[DT, EARLY_PRUNE, SHOW_INFO](cnf1, n_bits)
 
     @parameter
@@ -386,15 +416,15 @@ fn main():
     # test_cnf2dnf_0()
     # test_cnf2dnf_1()
     # test_cnf2dnf_2() #TODO
-    test_cnf2dnf_3[True]()
-    # test_cnf2dnf_4()
+    # test_cnf2dnf_3[True]()
+    test_cnf2dnf_4()
     # test_cnf2dnf_very_hard()
 
     # benchmark.run[test_cnf2dnf_0[True]]().print()
     # benchmark.run[test_cnf2dnf_1[True]]().print()
     # benchmark.run[test_cnf2dnf_2[True]]().print()
     # benchmark.run[test_cnf2dnf_3[True]]().print()
-    # benchmark.run[test_cnf2dnf_4[True]]().print()
+    #benchmark.run[test_cnf2dnf_4[True]]().print()
 
 
     let elapsed_time_ns = now() - start_time_ns

@@ -1,5 +1,7 @@
 from tools import get_bit, delete_indices
 from math.bit import ctpop
+from tools import my_cast
+
 
 fn convert_cnf_to_dnf[DT: DType, SHOW_INFO: Bool](cnf: DynamicVector[SIMD[DT, 1]], n_bits: Int) -> DynamicVector[SIMD[DT, 1]]:
     var result_dnf = DynamicVector[SIMD[DT, 1]]()
@@ -17,16 +19,8 @@ fn convert_cnf_to_dnf[DT: DType, SHOW_INFO: Bool](cnf: DynamicVector[SIMD[DT, 1]
                 if get_bit(disjunction, pos):
                     let x: SIMD[DT, 1] = 1 << pos
                     for j in range(len(result_dnf)):
-                        let y = result_dnf[j]
-                        let z = x.__or__(y)
-
-                        var tmp_struct = run_optimized(result_dnf_next, z)
-                        if tmp_struct.add_z:
-                            # print("INFO: size(index_to_delete) = " + str(tmp_struct.index_to_delete.size)) #DynamicVector2Str(index_to_delete))
-                            delete_indices[DT, True](
-                                result_dnf_next, tmp_struct.index_to_delete
-                            )
-                            result_dnf_next.push_back(z)
+                        let z = x.__or__(result_dnf[j])
+                        update_dnf(result_dnf_next, z)
 
             result_dnf = result_dnf_next
             result_dnf_next.clear()
@@ -67,43 +61,37 @@ fn convert_cnf_to_dnf_minimal[
                 var n_not_pruned: Int = 0
 
                 for pos in range(n_bits):
-                    if get_bit(disjunction, pos):  # unlikely
+                    if get_bit(disjunction, pos):
                         let x: SIMD[DT, 1] = 1 << pos
                         for j in range(len(result_dnf)):
-                            let y: SIMD[DT, 1] = result_dnf[j]
-                            let z: SIMD[DT, 1] = x.__or__(y)
+                            let z: SIMD[DT, 1] = x.__or__(result_dnf[j])
 
-                            var consider_z = True
                             # Early prune CNFs that cannot become the smallest cnf
-                            let conjuction_size: Int = math.bit.ctpop(z).to_int()
-                            if conjuction_size < smallest_cnf_size:
-                                smallest_cnf_size = conjuction_size
-                                max_size = conjuction_size + (
+                            let conjunction_size: Int = math.bit.ctpop(z).to_int()
+                            if conjunction_size < smallest_cnf_size:
+                                smallest_cnf_size = conjunction_size
+                                max_size = conjunction_size + (
                                     n_disjunctions - n_disjunction_done
                                 )
-                            if max_size < conjuction_size:
+
+                            var consider_z = True
+                            if max_size < conjunction_size:
                                 consider_z = False
-                                # std::cout << "pruning conjunction: the current minimum is " << smallest_cnf_size <<
-                                # " and the remaining disjunctions is " << (n_disjuctions - n_disjunction_done) <<
-                                # ", thus this conjuction with size " << conjuction_size << " can never be the smallest" <<  std::endl;
+                                #print_no_newline("INFO: 8668d0bc: Pruning conjunction: the current minimum is " + str(smallest_cnf_size))
+                                #print_no_newline(" and the remaining disjunctions is " + str((n_disjunctions - n_disjunction_done)))
+                                #print_no_newline(", thus this conjunction with size " + str(conjunction_size) + " can never be the smallest\n");
                                 n_pruned += 1
                             else:
                                 n_not_pruned += 1
 
                             if consider_z:
-                                var tmp_struct2 = run_optimized(result_dnf_next, z)
-                                if tmp_struct2.add_z:
-                                    delete_indices[DT, True](
-                                        result_dnf_next, tmp_struct2.index_to_delete
-                                    )
-                                    result_dnf_next.push_back(z)
+                                update_dnf[DT](result_dnf_next, z)
 
                 @parameter
                 if SHOW_INFO:
                     print("; result_dnf_next=" + str(len(result_dnf_next)) + "; n_pruned="+str(n_pruned) + "; n_not_prunned=" + str(n_not_pruned) +"; max_size=" + str(max_size) +"; smallest_cnf_size="+ str(smallest_cnf_size))
 
-                 # swap(result_dnf, result_dnf_next)
-                result_dnf = result_dnf_next
+                result_dnf = result_dnf_next^
 
             n_disjunction_done += 1
     else:  # do a late prune, can be 20 times slower
@@ -128,31 +116,69 @@ fn convert_cnf_to_dnf_minimal[
     return result_dnf_minimal
 
 
-struct TmpStruct2:
-    var index_to_delete: DynamicVector[Int]
-    var add_z: Bool
-
-    @always_inline("nodebug")
-    fn __init__(inout self):
-        self.index_to_delete = DynamicVector[Int]()
-        self.add_z = False
-
-    @always_inline("nodebug")
-    fn __moveinit__(inout self, owned existing: Self):
-        self.index_to_delete = existing.index_to_delete ^
-        self.add_z = existing.add_z
-
-fn run_optimized[T: DType](dnf: DynamicVector[SIMD[T, 1]], z: SIMD[T, 1]) -> TmpStruct2:
-    var result = TmpStruct2()
-    var index = 0
-    for i in range(len(dnf)):
-        let q = dnf[i]
+fn update_dnf_1[T: DType](dnf: DynamicVector[SIMD[T, 1]], z: SIMD[T, 1], begin_index: Int, inout index_to_delete: DynamicVector[Int])-> Bool:
+    let size = len(dnf)
+    for index in range(begin_index, size):
+        let q = dnf[index]
         let p = z.__or__(q)
         if p == z:  # z is subsumed under q: no need to add z
-            return result ^
+            return False
         elif p == q:  # q is subsumed under z: add z and remove q
-            result.index_to_delete.push_back(index)
-        index += 1
+            index_to_delete.push_back(index)
+    return True
 
-    result.add_z = True
-    return result ^
+fn update_dnf_N[T: DType, SIZE: Int](dnf: DTypePointer[T], z: SIMD[T, SIZE], begin_index: Int, inout index_to_delete: DynamicVector[Int]) -> Bool:
+    let q2 = dnf.simd_load[SIZE]()
+    alias zeros = SIMD[DType.bool, SIZE](False)
+
+    let p2 = z.__or__(q2)
+    let mask1 = p2 == z
+    if mask1 != zeros:  # z is subsumed under q: no need to add z
+        return False
+
+    let mask2 = p2 == q2
+    if mask2 != zeros: # q is subsumed under z: add z and remove q
+        for i in range(SIZE):
+            if mask2[i]:
+                index_to_delete.push_back(begin_index + i)
+        return True
+    return False
+
+
+fn update_dnf[T: DType, N_BITS_BLOCK: Int = 0](inout dnf: DynamicVector[SIMD[T, 1]], z: SIMD[T, 1]):
+    var index_to_delete = DynamicVector[Int]()
+    @parameter
+    if N_BITS_BLOCK < 1:
+        let add_z = update_dnf_1[T](dnf, z, 0, index_to_delete)
+        if add_z:
+            delete_indices[T, True](dnf, index_to_delete)
+            dnf.push_back(z)
+        return
+    else:
+        #NOTE: folling code seem broken
+        alias BLOCK_SIZE = 1 << N_BITS_BLOCK
+        alias zeros = SIMD[DType.bool, BLOCK_SIZE](False)
+
+        let size = len(dnf)
+        let n_blocks: Int = size >> N_BITS_BLOCK
+        #print("run_optimized len(dnf)=" + str(len(dnf)) + "; n_blocks=" + str(n_blocks))
+        let z2 = SIMD[T, BLOCK_SIZE](z) # broadcast z to all positions in z2
+
+        var ptr: DTypePointer[T] = my_cast[T, 1](dnf)
+        alias PTR_DELTA = BLOCK_SIZE * T.sizeof()
+
+        var add_z = False
+
+        for block in range(n_blocks):
+            add_z = update_dnf_N[T, BLOCK_SIZE](ptr, z2, 0, index_to_delete)
+            if add_z:
+                break
+            ptr += PTR_DELTA
+
+        if not add_z:
+            let start_tail_index = n_blocks << N_BITS_BLOCK
+            add_z = update_dnf_1[T](dnf, z, start_tail_index, index_to_delete)
+
+        if add_z:
+            delete_indices[T, True](dnf, index_to_delete)
+            dnf.push_back(z)
