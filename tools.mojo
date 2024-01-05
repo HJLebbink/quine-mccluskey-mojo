@@ -2,7 +2,15 @@ from collections.vector import DynamicVector
 from algorithm.sort import sort
 
 fn get_bit[T: DType](v: SIMD[T, 1], pos: Int) -> Bool:
-    return ((v >> pos) & 1) == 1
+    return ((v >> pos).__and__(1)) == 1
+
+
+fn set_bit[T: DType](v: SIMD[T, 1], pos: Int) -> SIMD[T, 1]:
+    return v.__or__(SIMD[T, 1](1) << pos)
+
+
+fn clear_bit[T: DType](v: SIMD[T, 1], pos: Int) -> SIMD[T, 1]:
+    return v.__and__((SIMD[T, 1](1) << pos).__invert__())
 
 
 fn get_minterm_type[bit_width: Int]() -> DType:

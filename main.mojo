@@ -39,10 +39,14 @@ fn truth_table_test1():
     # X11 -> 1
     # 1XX -> 1
 
+    tt.decompress()
     print("expected: 011 100 101 110 111")
     print("observed: " + tt.to_string[PrintType.BIN]())
-    tt.minimize[USE_CLASSIC_METHOD=True, SHOW_INFO=SHOW_INFO]()
+    tt.compress[USE_CLASSIC_METHOD=True, SHOW_INFO=SHOW_INFO]()
     print("expected: 1XX X11")
+    print("observed: " + tt.to_string[PrintType.BIN]())
+    tt.decompress()
+    print("expected: 011 100 101 110 111")
     print("observed: " + tt.to_string[PrintType.BIN]())
 
 
@@ -79,7 +83,7 @@ fn truth_table_test2():
 
     print("expected: 0000 0010 0011 0100 0101 0110 0111 1000 1001 1010 1011 1100 1101")
     print("observed: " + tt.to_string[PrintType.BIN]())
-    tt.minimize[USE_CLASSIC_METHOD=False, SHOW_INFO=SHOW_INFO]()
+    tt.compress[USE_CLASSIC_METHOD=False, SHOW_INFO=SHOW_INFO]()
     print("expected: X10X 10XX 0X1X 0XX0")
     print("observed: " + tt.to_string[PrintType.BIN]())
 
@@ -129,9 +133,13 @@ fn truth_table_test3():
 
     print("expected: 0000 0010 0101 0110 0111 1000 1010 1100 1101 1110 1111")
     print("observed: " + tt.to_string[PrintType.BIN]())
-    tt.minimize[USE_CLASSIC_METHOD=True, SHOW_INFO=SHOW_INFO]()
+    tt.compress[USE_CLASSIC_METHOD=True, SHOW_INFO=SHOW_INFO]()
     print("expected: X0X0 X1X1 1XX0 XX10")
     print("observed: " + tt.to_string[PrintType.BIN]())
+    tt.decompress()
+    print("expected: 0000 0010 0101 0110 0111 1000 1010 1100 1101 1110 1111")
+    print("observed: " + tt.to_string[PrintType.BIN]())
+
 
     # (x̄2x̄0) ∨ (x2x0) ∨ (x1x̄0) ∨ (x3x̄0) // manually checked with https://www.mathematik.uni-marburg.de/~thormae/lectures/ti1/code/qmc/
     # X0X0      X1X1      XX10     1XX0
@@ -157,7 +165,7 @@ fn truth_table_test4():
 
     print("expected: 11100111 11100001 01100001 00100001")
     print("observed: " + tt.to_string[PrintType.BIN]())
-    tt.minimize[SHOW_INFO]()
+    tt.compress[SHOW_INFO]()
     print("expected: 0X100001 X1100001 11100111")
     print("observed: " + tt.to_string[PrintType.BIN]())
 
@@ -408,7 +416,7 @@ fn test_cnf2dnf_very_hard[QUIET: Bool = False]():
 fn main():
     let start_time_ns = now()
 
-    # truth_table_test1()
+    truth_table_test1()
     # truth_table_test2()
     # truth_table_test3()
     # truth_table_test4()
@@ -417,7 +425,7 @@ fn main():
     # test_cnf2dnf_1()
     # test_cnf2dnf_2() #TODO
     # test_cnf2dnf_3[True]()
-    test_cnf2dnf_4()
+    # test_cnf2dnf_4()
     # test_cnf2dnf_very_hard()
 
     # benchmark.run[test_cnf2dnf_0[True]]().print()
