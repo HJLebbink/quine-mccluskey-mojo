@@ -119,10 +119,13 @@ fn cnf_dnf_to_string2[is_cnf: Bool](cnf: DynamicVector[DynamicVector[String]]) -
 
 
 fn minterms_to_string[
-    T: DType, P: PrintType = PrintType.BIN, cap: Int = 30
+    T: DType, P: PrintType = PrintType.BIN, cap: Int = 0
 ](minterms: DynamicVector[SIMD[T, 1]], n_vars: Int) -> String:
     var result: String = ""
-    let s = math.min(len(minterms), cap)
+    var cap2 = cap
+    if cap == 0:
+        cap2 = 0xFFFF_FFFF # something large
+    let s = math.min(len(minterms), cap2)
     for i in range(s):
         result += minterm_to_string[T, P](minterms[i], n_vars)
         @parameter

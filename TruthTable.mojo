@@ -41,7 +41,6 @@ struct TruthTable[N_BITS: Int](Stringable):
 
     @always_inline("nodebug")
     fn get_value(self, idx: Int) -> Int:
-        print("get_value: N_BITS = " +str(N_BITS))
         @parameter
         if N_BITS <= 4:
             return (self.data[idx].__and__(0xF)).to_int()
@@ -93,12 +92,12 @@ struct TruthTable[N_BITS: Int](Stringable):
         self.is_compressed = True
         self.is_decompressed = False
         self.is_sorted = False
+        self.sort()
 
 
     @always_inline("nodebug")
     fn decompress[SHOW_INFO: Bool = False](inout self):
         if self.is_decompressed:
-            print("Already decompressed!")
             return
         var new_data = MySet[Self.MinTermType]()
         for i in range(len(self.data)):

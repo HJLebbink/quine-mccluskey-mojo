@@ -6,6 +6,7 @@ from quine_mccluskey import reduce_qm
 from MintermSet import MintermSet
 from TruthTable import TruthTable
 from cnf_to_dnf import convert_cnf_to_dnf_minimal, convert_cnf_to_dnf
+from test_compress import test_compress_decompress
 from to_string import (
     PrintType,
     cnf_to_string,
@@ -39,10 +40,10 @@ fn truth_table_test1():
     # X11 -> 1
     # 1XX -> 1
 
-    tt.decompress()
+    tt.sort()
     print("expected: 011 100 101 110 111")
     print("observed: " + tt.to_string[PrintType.BIN]())
-    tt.compress[USE_CLASSIC_METHOD=True, SHOW_INFO=SHOW_INFO]()
+    tt.compress[USE_CLASSIC_METHOD=False, SHOW_INFO=SHOW_INFO]()
     print("expected: 1XX X11")
     print("observed: " + tt.to_string[PrintType.BIN]())
     tt.decompress()
@@ -81,10 +82,14 @@ fn truth_table_test2():
     # 14: 1110 -> 0
     # 15: 1111 -> 0
 
+    tt.sort()
     print("expected: 0000 0010 0011 0100 0101 0110 0111 1000 1001 1010 1011 1100 1101")
     print("observed: " + tt.to_string[PrintType.BIN]())
     tt.compress[USE_CLASSIC_METHOD=False, SHOW_INFO=SHOW_INFO]()
-    print("expected: X10X 10XX 0X1X 0XX0")
+    print("expected: 10XX 0X1X 0XX0 X10X")
+    print("observed: " + tt.to_string[PrintType.BIN]())
+    tt.decompress()
+    print("expected: 0000 0010 0011 0100 0101 0110 0111 1000 1001 1010 1011 1100 1101")
     print("observed: " + tt.to_string[PrintType.BIN]())
 
     # (x̄3x̄0), (x̄3x1), (x2x̄1), (x3x̄2) // manually checked with https://www.mathematik.uni-marburg.de/~thormae/lectures/ti1/code/qmc/
@@ -131,6 +136,7 @@ fn truth_table_test3():
     # 14: 1110 -> 1
     # 15: 1111 -> 1
 
+    tt.sort()
     print("expected: 0000 0010 0101 0110 0111 1000 1010 1100 1101 1110 1111")
     print("observed: " + tt.to_string[PrintType.BIN]())
     tt.compress[USE_CLASSIC_METHOD=True, SHOW_INFO=SHOW_INFO]()
@@ -163,10 +169,14 @@ fn truth_table_test4():
     tt.set_true(0b01100001)
     tt.set_true(0b00100001)
 
-    print("expected: 11100111 11100001 01100001 00100001")
+    tt.sort()
+    print("expected: 00100001 01100001 11100001 11100111")
     print("observed: " + tt.to_string[PrintType.BIN]())
     tt.compress[SHOW_INFO]()
-    print("expected: 0X100001 X1100001 11100111")
+    print("expected: 11100111 0X100001 X1100001")
+    print("observed: " + tt.to_string[PrintType.BIN]())
+    tt.decompress()
+    print("expected: 00100001 01100001 11100001 11100111")
     print("observed: " + tt.to_string[PrintType.BIN]())
 
 
@@ -416,10 +426,10 @@ fn test_cnf2dnf_very_hard[QUIET: Bool = False]():
 fn main():
     let start_time_ns = now()
 
-    truth_table_test1()
+    # truth_table_test1()
     # truth_table_test2()
     # truth_table_test3()
-    # truth_table_test4()
+    truth_table_test4()
 
     # test_cnf2dnf_0()
     # test_cnf2dnf_1()
@@ -428,12 +438,13 @@ fn main():
     # test_cnf2dnf_4()
     # test_cnf2dnf_very_hard()
 
+    # test_compress_decompress(100, 100)
+
     # benchmark.run[test_cnf2dnf_0[True]]().print()
     # benchmark.run[test_cnf2dnf_1[True]]().print()
     # benchmark.run[test_cnf2dnf_2[True]]().print()
     # benchmark.run[test_cnf2dnf_3[True]]().print()
     #benchmark.run[test_cnf2dnf_4[True]]().print()
-
 
     let elapsed_time_ns = now() - start_time_ns
     print_no_newline("Elapsed time " + str(elapsed_time_ns) + " ns")
