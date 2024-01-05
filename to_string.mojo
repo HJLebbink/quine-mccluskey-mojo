@@ -89,8 +89,8 @@ fn cnf_dnf_to_string[T: DType, is_cnf: Bool](cnf: DynamicVector[SIMD[T, 1]]) -> 
 fn cnf_dnf_to_string2[is_cnf: Bool](cnf: DynamicVector[DynamicVector[String]]) -> String:
     var conjunctions = MySetStr()
     for i in range(cnf.size):
-        var conj = cnf[i]
-        # sort[String](conj)
+        let conj = cnf[i]
+        #sort[String](conj) # TODO cannot sort String in v0.6.1
         var s: String = " ("
         var first = True
         for j in range(conj.size):
@@ -176,6 +176,3 @@ fn int_to_bin_string[T: DType](v: SIMD[T, 1], n_bits: Int) -> String:
         else:
             result += "0"
     return result
-
-
-

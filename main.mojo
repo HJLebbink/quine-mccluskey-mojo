@@ -7,12 +7,14 @@ from MintermSet import MintermSet
 from TruthTable import TruthTable
 from cnf_to_dnf import convert_cnf_to_dnf_minimal, convert_cnf_to_dnf
 from test_compress import test_compress_decompress
+from tools import eq_dynamic_vector, get_bit
 from to_string import (
     PrintType,
     cnf_to_string,
     dnf_to_string,
     cnf_to_string2,
     dnf_to_string2,
+    minterms_to_string
 )
 
 
@@ -178,6 +180,47 @@ fn truth_table_test4():
     tt.decompress()
     print("expected: 00100001 01100001 11100001 11100111")
     print("observed: " + tt.to_string[PrintType.BIN]())
+
+
+# bug
+fn truth_table_test5():
+
+    let implicants = VariadicList(0b0001,0b0011,0b0101,0b1000,0b1010,0b1011,0b1101)
+
+    var tt = TruthTable[4]()
+    for i in range(len(implicants)):
+        tt.set_true(implicants[i])
+
+    tt.sort()
+    let data1 = tt.data
+    print("observed: " + tt.to_string[PrintType.BIN]())
+    tt.compress[USE_CLASSIC_METHOD=True, SHOW_INFO=False]()
+    print("observed: " + tt.to_string[PrintType.BIN]())
+    tt.decompress()
+    let data2 = tt.data
+    print("observed: " + tt.to_string[PrintType.BIN]())
+
+    if not eq_dynamic_vector[tt.MinTermType](data1, data2):
+        print("NOT EQUAL")
+
+    # y = (x3x̄2x̄0) ∨ (x2x̄1x0) ∨ (x̄3x̄2x0) ∨ (x̄2x1x0) 
+    # y = 10X0 X101 00X1 X011
+
+    # http://www.32x8.com/qmm4_____A-B-C-D_____m_1-3-5-8-10-11-13___________option-4_____988791976079822295658
+    # y = A'B'D + B'CD + BC'D + AB'D'
+    # y = 00X1 X011 X101 10X0
+
+    # old c++ code:
+    # y = A'B'D + AB'D' + B'CD + BC'D
+    # y = 00X1 10X0 X011 X101
+
+
+    # obs mojo: 101X 10X0 0X01 X101
+    # obs c++ : 10X0 X101 0X01 101X
+
+
+
+
 
 
 # CNF =  (1|2) & (3|4)
@@ -390,29 +433,25 @@ fn test_cnf2dnf_very_hard[QUIET: Bool = False]():
     if not QUIET:
         print("CNF = " + cnf_to_string[DT](cnf1))
 
-
-#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 2 of 35; result_dnf_next=16; n_pruned=0; n_not_prunned=48; max_size=35; smallest_cnf_size=2
-#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 3 of 35; result_dnf_next=37; n_pruned=0; n_not_prunned=64; max_size=35; smallest_cnf_size=3
-#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 4 of 35; result_dnf_next=148; n_pruned=0; n_not_prunned=148; max_size=35; smallest_cnf_size=4
-#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 5 of 35; result_dnf_next=175; n_pruned=0; n_not_prunned=444; max_size=34; smallest_cnf_size=4
-#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 6 of 35; result_dnf_next=403; n_pruned=0; n_not_prunned=700; max_size=34; smallest_cnf_size=5
-#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 7 of 35; result_dnf_next=547; n_pruned=0; n_not_prunned=1209; max_size=33; smallest_cnf_size=5
-#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 8 of 35; result_dnf_next=707; n_pruned=0; n_not_prunned=1641; max_size=32; smallest_cnf_size=5
-#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 9 of 35; result_dnf_next=1160; n_pruned=0; n_not_prunned=2828; max_size=32; smallest_cnf_size=6
-#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 10 of 35; result_dnf_next=4640; n_pruned=0; n_not_prunned=4640; max_size=32; smallest_cnf_size=7
-#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 11 of 35; result_dnf_next=6140; n_pruned=0; n_not_prunned=13920; max_size=31; smallest_cnf_size=7
-#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 12 of 35; result_dnf_next=14483; n_pruned=0; n_not_prunned=24560; max_size=31; smallest_cnf_size=8
-#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 13 of 35; result_dnf_next=21578; n_pruned=0; n_not_prunned=43449; max_size=30; smallest_cnf_size=8
-#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 14 of 35; result_dnf_next=31135; n_pruned=0; n_not_prunned=64734; max_size=29; smallest_cnf_size=8
-#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 15 of 35; result_dnf_next=51655; n_pruned=0; n_not_prunned=124540; max_size=29; smallest_cnf_size=9
-#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 16 of 35; result_dnf_next=84437; n_pruned=0; n_not_prunned=154965; max_size=28; smallest_cnf_size=9
-#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 17 of 35; result_dnf_next=134781; n_pruned=0; n_not_prunned=253311; max_size=27; smallest_cnf_size=9
-#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 18 of 35; result_dnf_next=209163; n_pruned=0; n_not_prunned=404343; max_size=27; smallest_cnf_size=10
-#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 19 of 35; result_dnf_next=272184; n_pruned=0; n_not_prunned=836652; max_size=26; smallest_cnf_size=1INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 20 of 35; result_dnf_next=1088736; n_pruned=0; n_not_prunned=1088736; max_size=26; smallest_cnf_size=11
-#INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 21 of 35; result_dnf_next=1566900; n_pruned=0; n_not_prunned=3266208; max_size=25; smallest_cnf_size=11
-
-
-
+    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 2 of 35; result_dnf_next=16; n_pruned=0; n_not_prunned=48; max_size=35; smallest_cnf_size=2
+    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 3 of 35; result_dnf_next=37; n_pruned=0; n_not_prunned=64; max_size=35; smallest_cnf_size=3
+    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 4 of 35; result_dnf_next=148; n_pruned=0; n_not_prunned=148; max_size=35; smallest_cnf_size=4
+    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 5 of 35; result_dnf_next=175; n_pruned=0; n_not_prunned=444; max_size=34; smallest_cnf_size=4
+    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 6 of 35; result_dnf_next=403; n_pruned=0; n_not_prunned=700; max_size=34; smallest_cnf_size=5
+    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 7 of 35; result_dnf_next=547; n_pruned=0; n_not_prunned=1209; max_size=33; smallest_cnf_size=5
+    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 8 of 35; result_dnf_next=707; n_pruned=0; n_not_prunned=1641; max_size=32; smallest_cnf_size=5
+    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 9 of 35; result_dnf_next=1160; n_pruned=0; n_not_prunned=2828; max_size=32; smallest_cnf_size=6
+    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 10 of 35; result_dnf_next=4640; n_pruned=0; n_not_prunned=4640; max_size=32; smallest_cnf_size=7
+    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 11 of 35; result_dnf_next=6140; n_pruned=0; n_not_prunned=13920; max_size=31; smallest_cnf_size=7
+    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 12 of 35; result_dnf_next=14483; n_pruned=0; n_not_prunned=24560; max_size=31; smallest_cnf_size=8
+    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 13 of 35; result_dnf_next=21578; n_pruned=0; n_not_prunned=43449; max_size=30; smallest_cnf_size=8
+    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 14 of 35; result_dnf_next=31135; n_pruned=0; n_not_prunned=64734; max_size=29; smallest_cnf_size=8
+    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 15 of 35; result_dnf_next=51655; n_pruned=0; n_not_prunned=124540; max_size=29; smallest_cnf_size=9
+    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 16 of 35; result_dnf_next=84437; n_pruned=0; n_not_prunned=154965; max_size=28; smallest_cnf_size=9
+    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 17 of 35; result_dnf_next=134781; n_pruned=0; n_not_prunned=253311; max_size=27; smallest_cnf_size=9
+    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 18 of 35; result_dnf_next=209163; n_pruned=0; n_not_prunned=404343; max_size=27; smallest_cnf_size=10
+    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 19 of 35; result_dnf_next=272184; n_pruned=0; n_not_prunned=836652; max_size=26; smallest_cnf_size=1INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 20 of 35; result_dnf_next=1088736; n_pruned=0; n_not_prunned=1088736; max_size=26; smallest_cnf_size=11
+    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 21 of 35; result_dnf_next=1566900; n_pruned=0; n_not_prunned=3266208; max_size=25; smallest_cnf_size=11
 
     alias EARLY_PRUNE = True
     alias SHOW_INFO = True
@@ -429,7 +468,8 @@ fn main():
     # truth_table_test1()
     # truth_table_test2()
     # truth_table_test3()
-    truth_table_test4()
+    # truth_table_test4()
+    truth_table_test5()
 
     # test_cnf2dnf_0()
     # test_cnf2dnf_1()
@@ -438,13 +478,13 @@ fn main():
     # test_cnf2dnf_4()
     # test_cnf2dnf_very_hard()
 
-    # test_compress_decompress(100, 100)
+    #test_compress_decompress(100, 100)
 
     # benchmark.run[test_cnf2dnf_0[True]]().print()
     # benchmark.run[test_cnf2dnf_1[True]]().print()
     # benchmark.run[test_cnf2dnf_2[True]]().print()
     # benchmark.run[test_cnf2dnf_3[True]]().print()
-    #benchmark.run[test_cnf2dnf_4[True]]().print()
+    # benchmark.run[test_cnf2dnf_4[True]]().print()
 
     let elapsed_time_ns = now() - start_time_ns
     print_no_newline("Elapsed time " + str(elapsed_time_ns) + " ns")

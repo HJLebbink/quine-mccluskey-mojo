@@ -126,6 +126,21 @@ struct MySet[Value: DType](CollectionElement, Sized, Stringable):
             # this can be done more efficient
             self.add(values.data[i])
 
+    fn remove(inout self, value: SIMD[Value, 1]):
+        let size = len(self.data)
+        for i in range(size):
+            if value == self.data[i]:
+                if i == (size-1):
+                    _ = self.data.pop_back()
+                else:
+                    self.data[i] = self.data.pop_back()
+                return
+
+    fn remove(inout self, values: MySet[Value]):
+        for i in range(len(values)):
+            # this can be done more efficient
+            self.remove(values.data[i])
+
     @always_inline("nodebug")
     fn contains(self, value: SIMD[Value, 1]) -> Bool:
         for i in range(len(self.data)):

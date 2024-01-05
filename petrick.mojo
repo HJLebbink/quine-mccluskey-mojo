@@ -3,6 +3,7 @@ from MyMap import MyMap, MySet
 from cnf_to_dnf import convert_cnf_to_dnf_minimal, convert_cnf_to_dnf
 from tools import get_bit, get_dk_offset, get_dk_mask
 from to_string import PrintType, minterm_to_string, minterms_to_string, int_to_bin_string, cnf_to_string, dnf_to_string
+from algorithm.sort import sort
 
 # using PI_table_1 = std::map<PI, std::unordered_set<MT>>;
 # using PI_table_2 = std::map<MT, std::unordered_set<PI>>;
@@ -88,40 +89,64 @@ fn subset[T: DType](sub_set: MySet[T], super_set: MySet[T]) -> Bool:
             return False
     return True
 
-
+# Given two rows a and b in a reduced prime implicant table, a is said to dominate b, if a
+# has checks in all the columns in which b has checks and a and b are not interchangeable.
+# Two identical rows (columns) a and b of a reduced prime table are said to be interchangeable.
 fn row_dominance[PI: DType, MT: DType](pi_table2: MyMap[MT, MySet[PI]]) -> MyMap[MT, MySet[PI]]:
     var mt_to_be_deleted = MySet[MT]()
     for i in range(len(pi_table2)):
         let mt1 = pi_table2.keys[i]
-        let pi_set1 = pi_table2.values[i]
         if not mt_to_be_deleted.contains(mt1):
+            let pi_set1 = pi_table2.values[i]
             for j in range(len(pi_table2)):
                 let mt2 = pi_table2.keys[j]
-                let pi_set2 = pi_table2.values[j]
-                if (mt1 != mt2) & subset(pi_set1, pi_set2):
-                    mt_to_be_deleted.add(mt2)
+                if (mt1 != mt2):
+                    let pi_set2 = pi_table2.values[j]
+                    if subset(pi_set1, pi_set2):
+                        mt_to_be_deleted.add(mt2)
     var pi_table1_out = pi_table2
     for i in range(len(mt_to_be_deleted)):
         pi_table1_out.remove(mt_to_be_deleted.data[i])
     return pi_table1_out
 
-
+# Given two columns a and b in a reduced prime implicant table, a is said to dominate b, if
+# a has checks in all the rows in which b has checks and a and b are not interchangeable.
+# Two identical rows (columns) a and b of a reduced prime table are said to be interchangeable.
+# eg prime implicant table:
+#                 00X1 0X01 101X X011
+# 1        = 0001 |XX..
+# 3        = 0011 |X..X
+# 11       = 1011 |..XX
+#
+# cam be reduced based on column dominance to prime implicant table:
+#                  00X1 X011
+# 1        = 0001 |X.
+# 3        = 0011 |XX
+# 11       = 1011 |.X
+#
+# column 00X1 dominates column 0X01, thus column 0X01 can be removed, and X011 dominates 101X,
+# thus 101X can be removed.
 fn column_dominance[PI: DType, MT: DType](pi_table2: MyMap[MT, MySet[PI]]) -> MyMap[MT, MySet[PI]]:
     let pi_table1: MyMap[PI, MySet[MT]] = convert_2to1[PI, MT](pi_table2)
+    let all_pi: DynamicVector[SIMD[PI, 1]] = pi_table1.keys
     var pi_to_be_deleted = MySet[PI]()
-    for i in range(len(pi_table1)):
-        let pi1: SIMD[PI, 1] = pi_table1.keys[i]
-        let mt_set1 = pi_table1.values[i]
-        if not pi_to_be_deleted.contains(pi1):
-            for j in range(len(pi_table1)):
-                let pi2: SIMD[PI, 1] = pi_table1.keys[j]
-                let mt_set2 = pi_table1.values[j]
-                if (pi1 != pi2) & subset(mt_set1, mt_set2):
-                    pi_to_be_deleted.add(pi2)
-    var pi_table1_out = pi_table1
-    for i in range(len(pi_to_be_deleted)):
-        pi_table1_out.remove(pi_to_be_deleted.data[i])
-    return convert_1to2[PI, MT](pi_table1_out)
+
+    for i in range(len(all_pi)):
+        let pi1: SIMD[PI, 1] = all_pi[i]
+        let mt_set1: MySet[MT] = pi_table1.get(pi1)
+        for j in range(i+1, len(all_pi)):
+            let pi2 = all_pi[j]
+            let mt_set2: MySet[MT] = pi_table1.get(pi2)
+            # if pi1 dominates pi2, then remove pi2
+            if subset(mt_set1, mt_set2):
+                pi_to_be_deleted.add(pi1)
+            if subset(mt_set2, mt_set1):
+                pi_to_be_deleted.add(pi2)
+
+    var result = pi_table2
+    for i in range(len(result)):
+        result.values[i].remove(pi_to_be_deleted)
+    return result
 
 
 fn petricks_method[PI: DType, MT: DType, N_BITS: Int, SHOW_INFO: Bool](
@@ -203,9 +228,12 @@ struct TmpStruct1[PI: DType, MT: DType]:
         self.essential_pi = existing.essential_pi ^
 
 fn to_string_pi_table1[N_BITS: Int, PI: DType, MT: DType](pi_table1: MyMap[PI, MySet[MT]]) -> String:
-    var all_minterms = MySet[MT]()
+    var all_mt_set = MySet[MT]()
     for i in range(len(pi_table1)):
-        all_minterms.add(pi_table1.values[i])
+        all_mt_set.add(pi_table1.values[i])
+
+    var all_mt = all_mt_set.data
+    sort[MT](all_mt)
 
     var result: String = "\t"
     for i in range(len(pi_table1)):
@@ -213,8 +241,8 @@ fn to_string_pi_table1[N_BITS: Int, PI: DType, MT: DType](pi_table1: MyMap[PI, M
         result += minterm_to_string[PI, PrintType.BIN](pi, N_BITS) + " "
     result += "\n"
 
-    for i in range(len(all_minterms)):
-        let mt = all_minterms.data[i]
+    for i in range(len(all_mt)):
+        let mt = all_mt[i]
         var covered_by_prime_implicants = 0
         var tmp: String = ""
         for j in range(len(pi_table1)):
@@ -233,26 +261,30 @@ fn to_string_pi_table1[N_BITS: Int, PI: DType, MT: DType](pi_table1: MyMap[PI, M
 
 fn to_string_pi_table2[N_BITS: Int, PI: DType, MT: DType](pi_table2: MyMap[MT, MySet[PI]]) -> String:
     if len(pi_table2) == 0:
-        return "EMPTY"
+        return "EMPTY\n"
 
-    var all_pi = MySet[PI]()
+    var all_pi_set = MySet[PI]()
+    var all_mt = DynamicVector[SIMD[MT, 1]]()
     for i in range(len(pi_table2)):
-        all_pi.add(pi_table2.values[i])
+        all_mt.push_back(pi_table2.keys[i])
+        all_pi_set.add(pi_table2.values[i])
 
-    var result: String = "\t"
+    var all_pi = all_pi_set.data
+    sort[PI](all_pi)
+    sort[MT](all_mt)
+
+    var result: String = "\t\t "
     for i in range(len(all_pi)):
-        let pi: SIMD[PI, 1] = all_pi.data[i]
-        result += minterm_to_string[PI, PrintType.BIN](pi, N_BITS) + " "
+        result += minterm_to_string[PI, PrintType.BIN](all_pi[i], N_BITS) + " "
     result += "\n"
 
-    for i in range(len(pi_table2)):
-        let mt: SIMD[MT, 1] = pi_table2.keys[i]
-        let pi_set = pi_table2.values[i]
+    for i in range(len(all_mt)):
+        let mt = all_mt[i]
+        let pi_set = pi_table2.get(mt)
+        result += str(mt) + "\t = " + minterm_to_string[MT, PrintType.BIN](mt, N_BITS) + "\t|"
 
-        result += minterm_to_string[MT, PrintType.BIN](mt, N_BITS) + "\t|"
         for j in range(len(all_pi)):
-            let pi: SIMD[PI, 1] = all_pi.data[j]
-            if pi_set.contains(pi):
+            if pi_set.contains(all_pi[j]):
                 result += "X"
             else:
                 result += "."
@@ -283,7 +315,7 @@ fn petrick_simplify[
 
     @parameter
     if SHOW_INFO:
-        print("1] created PI table: number of PIs = " + str(len(pi_table1)))
+        print("1] created PI table:")
         print(to_string_pi_table1[N_BITS, PI, MT](pi_table1))
 
     # 2] identify primary essential prime implicants
@@ -292,7 +324,7 @@ fn petrick_simplify[
 
     @parameter
     if SHOW_INFO:
-        print("2] identified primary essential PIs: number of essential PIs = " + str(len(primary.essential_pi)) + "; number of remaining PIs = " + str(len(primary.pi_table2)))
+        print("2] identified primary essential PIs:")
         print(to_string_pi_table2[N_BITS, PI, MT](primary.pi_table2))
 
 
@@ -300,32 +332,32 @@ fn petrick_simplify[
     let pi_table3: MyMap[MT, MySet[PI]] = row_dominance[PI, MT](primary.pi_table2)
     @parameter
     if SHOW_INFO:
-        print("3] reduced based on row dominance: number of PIs remaining = " + str(len(pi_table3)))
+        print("3] reduced based on row dominance:")
         print(to_string_pi_table2[N_BITS, PI, MT](pi_table3))
 
     let pi_table4: MyMap[MT, MySet[PI]] = column_dominance[PI, MT](pi_table3)
     @parameter
     if SHOW_INFO:
-        print("4] reduced based on column dominance: number of PIs remaining = " + str(len(pi_table4)))
+        print("4] reduced based on column dominance:")
         print(to_string_pi_table2[N_BITS, PI, MT](pi_table4))
 
     # identify secondary essential prime implicants
     let secondary: TmpStruct1[PI, MT] = identify_primary_essential_pi2[PI, MT](pi_table4)
     @parameter
     if SHOW_INFO:
-        print("5] identified secondary essential PIs: number of essential PIs " + str(len(secondary.essential_pi)) + "; number of PIs remaining = " + str(len(secondary.pi_table2)))
+        print("5] identified secondary essential PIs:")
         print(to_string_pi_table2[N_BITS, PI, MT](secondary.pi_table2))
 
     let pi_table6: MyMap[MT, MySet[PI]] = row_dominance[PI, MT](secondary.pi_table2)
     @parameter
     if SHOW_INFO:
-        print("6] reduced based on row dominance: number of PIs remaining = " + str(len(pi_table6)))
+        print("6] reduced based on row dominance:")
         print(to_string_pi_table2[N_BITS, PI, MT](pi_table6))
 
     let pi_table7: MyMap[MT, MySet[PI]] = column_dominance[PI, MT](pi_table6)
     @parameter
     if SHOW_INFO:
-        print("7] reduced based on column dominance: number of PIs remaining = " + str(len(pi_table7)))
+        print("7] reduced based on column dominance:")
         print(to_string_pi_table2[N_BITS, PI, MT](pi_table7))
 
     var essential_pi = DynamicVector[SIMD[PI, 1]]()
