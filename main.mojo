@@ -182,7 +182,7 @@ fn truth_table_test4():
     print("observed: " + tt.to_string[PrintType.BIN]())
 
 
-# bug
+# bug: fixed!
 fn truth_table_test5():
 
     let implicants = VariadicList(0b0001,0b0011,0b0101,0b1000,0b1010,0b1011,0b1101)
@@ -193,12 +193,56 @@ fn truth_table_test5():
 
     tt.sort()
     let data1 = tt.data
-    print("observed: " + tt.to_string[PrintType.BIN]())
+    print("original:     " + tt.to_string[PrintType.BIN]())
     tt.compress[USE_CLASSIC_METHOD=True, SHOW_INFO=False]()
-    print("observed: " + tt.to_string[PrintType.BIN]())
+    print("compressed:   " + tt.to_string[PrintType.BIN]())
     tt.decompress()
     let data2 = tt.data
-    print("observed: " + tt.to_string[PrintType.BIN]())
+    print("decompressed: " + tt.to_string[PrintType.BIN]())
+
+    if not eq_dynamic_vector[tt.MinTermType](data1, data2):
+        print("NOT EQUAL")
+
+    # y = (x3x̄2x̄0) ∨ (x2x̄1x0) ∨ (x̄3x̄2x0) ∨ (x̄2x1x0)
+    # y = 10X0 X101 00X1 X011
+
+    # http://www.32x8.com/qmm4_____A-B-C-D_____m_1-3-5-8-10-11-13___________option-4_____988791976079822295658
+    # y = A'B'D + B'CD + BC'D + AB'D'
+    # y = 00X1 X011 X101 10X0
+
+    # old c++ code:
+    # y = A'B'D + AB'D' + B'CD + BC'D
+    # y = 00X1 10X0 X011 X101
+
+    # obs mojo: 101X 10X0 0X01 X101
+    # obs c++ : 10X0 X101 0X01 101X
+
+# bug
+fn truth_table_test6():
+
+    #decompression failed: minterms_1a != minterms_3a; N_BITS=4
+    #minterms_1a: 0001 0010 0011 0100 0101 0110 1011 1111
+    #minterms_3a:0000 0001 0010 0100 0101 0110 1011 1111
+    #minterms_2a:1X11 0X0X 0XX0
+
+    var tt = TruthTable[4]()
+    tt.set_true(0b0000)
+    tt.set_true(0b0010)
+    tt.set_true(0b0011)
+    tt.set_true(0b0100)
+    tt.set_true(0b0101)
+    tt.set_true(0b0110)
+    tt.set_true(0b1011)
+    tt.set_true(0b1111)
+
+    tt.sort()
+    let data1 = tt.data
+    print("original:     " + tt.to_string[PrintType.BIN]())
+    tt.compress[USE_CLASSIC_METHOD=True, SHOW_INFO=True]()
+    print("compressed:   " + tt.to_string[PrintType.BIN]())
+    tt.decompress()
+    let data2 = tt.data
+    print("decompressed: " + tt.to_string[PrintType.BIN]())
 
     if not eq_dynamic_vector[tt.MinTermType](data1, data2):
         print("NOT EQUAL")
@@ -214,13 +258,8 @@ fn truth_table_test5():
     # y = A'B'D + AB'D' + B'CD + BC'D
     # y = 00X1 10X0 X011 X101
 
-
     # obs mojo: 101X 10X0 0X01 X101
     # obs c++ : 10X0 X101 0X01 101X
-
-
-
-
 
 
 # CNF =  (1|2) & (3|4)
@@ -469,7 +508,8 @@ fn main():
     # truth_table_test2()
     # truth_table_test3()
     # truth_table_test4()
-    truth_table_test5()
+    # truth_table_test5()
+    # truth_table_test6()
 
     # test_cnf2dnf_0()
     # test_cnf2dnf_1()
@@ -478,7 +518,7 @@ fn main():
     # test_cnf2dnf_4()
     # test_cnf2dnf_very_hard()
 
-    #test_compress_decompress(100, 100)
+    test_compress_decompress(100000)
 
     # benchmark.run[test_cnf2dnf_0[True]]().print()
     # benchmark.run[test_cnf2dnf_1[True]]().print()

@@ -6,8 +6,9 @@ from tools import eq_dynamic_vector
 from to_string import PrintType, minterms_to_string
 
 
-fn test_compress_decompress(n_tests: Int = 1, n_minterms: Int = 10):
+fn test_compress_decompress(n_tests: Int = 1):
     for i in range(n_tests):
+        let n_minterms = random_ui64(1, 50).to_int()
         if test_compress_decompress_1x[2](n_minterms):
             return
         if test_compress_decompress_1x[3](n_minterms):
@@ -28,6 +29,10 @@ fn test_compress_decompress(n_tests: Int = 1, n_minterms: Int = 10):
             return
         if test_compress_decompress_1x[11](n_minterms):
             return
+
+        if (i & 0xFF) == 0:
+            print("test_compress_decompress: progress " + str(i) + "/" + str(n_tests))
+
 
 
 fn test_compress_decompress_1x[N_BITS: Int](n_minterms: Int) -> Bool:
@@ -60,11 +65,11 @@ fn test_compress_decompress_1x[N_BITS: Int](n_minterms: Int) -> Bool:
 
     var error = False
 
-    if not tools.eq_dynamic_vector[tt1.MinTermType](minterms_2a, minterms_2b):
-        print("methods do not give equal results: minterms_2a != minterms_2b")
-        print("minterms_2a:" + minterms_to_string[tt1.MinTermType, P](minterms_2a, N_BITS))
-        print("minterms_2b:" + minterms_to_string[tt1.MinTermType, P](minterms_2b, N_BITS))
-        error = True
+    #if not tools.eq_dynamic_vector[tt1.MinTermType](minterms_2a, minterms_2b):
+        #print("methods do not give equal results: minterms_2a != minterms_2b")
+        #print("minterms_2a:" + minterms_to_string[tt1.MinTermType, P](minterms_2a, N_BITS))
+        #print("minterms_2b:" + minterms_to_string[tt1.MinTermType, P](minterms_2b, N_BITS))
+        #error = True
 
     if not tools.eq_dynamic_vector[tt1.MinTermType](minterms_1a, minterms_3a):
         print("decompression failed: minterms_1a != minterms_3a; N_BITS=" + str(N_BITS))

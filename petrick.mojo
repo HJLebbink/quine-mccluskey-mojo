@@ -137,10 +137,14 @@ fn column_dominance[PI: DType, MT: DType](pi_table2: MyMap[MT, MySet[PI]]) -> My
         for j in range(i+1, len(all_pi)):
             let pi2 = all_pi[j]
             let mt_set2: MySet[MT] = pi_table1.get(pi2)
-            # if pi1 dominates pi2, then remove pi2
-            if subset(mt_set1, mt_set2):
+            let q1: Bool = subset(mt_set1, mt_set2)
+            let q2: Bool = subset(mt_set2, mt_set1)
+            if q1 and q2:
+                pass
+            elif q1:
+                # if pi1 dominates pi2, then remove pi2
                 pi_to_be_deleted.add(pi1)
-            if subset(mt_set2, mt_set1):
+            elif q2:
                 pi_to_be_deleted.add(pi2)
 
     var result = pi_table2
