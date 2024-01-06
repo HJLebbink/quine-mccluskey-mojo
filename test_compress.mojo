@@ -34,7 +34,6 @@ fn test_compress_decompress(n_tests: Int = 1):
             print("test_compress_decompress: progress " + str(i) + "/" + str(n_tests))
 
 
-
 fn test_compress_decompress_1x[N_BITS: Int](n_minterms: Int) -> Bool:
     alias MAX_MINTERM = (1 << N_BITS) - 1
     var tt1 = TruthTable[N_BITS]()
@@ -65,24 +64,24 @@ fn test_compress_decompress_1x[N_BITS: Int](n_minterms: Int) -> Bool:
 
     var error = False
 
-    #if not tools.eq_dynamic_vector[tt1.MinTermType](minterms_2a, minterms_2b):
-        #print("methods do not give equal results: minterms_2a != minterms_2b")
-        #print("minterms_2a:" + minterms_to_string[tt1.MinTermType, P](minterms_2a, N_BITS))
-        #print("minterms_2b:" + minterms_to_string[tt1.MinTermType, P](minterms_2b, N_BITS))
-        #error = True
+    # if not tools.eq_dynamic_vector[tt1.MinTermType](minterms_2a, minterms_2b):
+    # print("methods do not give equal results: minterms_2a != minterms_2b")
+    # print("minterms_2a:" + minterms_to_string[tt1.MinTermType, P](minterms_2a, N_BITS))
+    # print("minterms_2b:" + minterms_to_string[tt1.MinTermType, P](minterms_2b, N_BITS))
+    # error = True
 
-    if not tools.eq_dynamic_vector[tt1.MinTermType](minterms_1a, minterms_3a):
+    if not (minterms_1a == minterms_3a):
         print("decompression failed: minterms_1a != minterms_3a; N_BITS=" + str(N_BITS))
-        print("minterms_1a:" + minterms_to_string[tt1.MinTermType, P](minterms_1a, N_BITS))
-        print("minterms_3a:" + minterms_to_string[tt1.MinTermType, P](minterms_3a, N_BITS))
-        print("minterms_2a:" + minterms_to_string[tt1.MinTermType, P](minterms_2a, N_BITS))
+        print("minterms_1a:" + minterms_to_string[tt1.MinTermType, P](minterms_1a.data, N_BITS))
+        print("minterms_3a:" + minterms_to_string[tt1.MinTermType, P](minterms_3a.data, N_BITS))
+        print("minterms_2a:" + minterms_to_string[tt1.MinTermType, P](minterms_2a.data, N_BITS))
         error = True
 
-    if not tools.eq_dynamic_vector[tt1.MinTermType](minterms_1b, minterms_3b):
+    if not (minterms_1b == minterms_3b):
         print("decompression failed: minterms_1b != minterms_3b; N_BITS=" + str(N_BITS))
-        print("minterms_1b:" + minterms_to_string[tt1.MinTermType, P](minterms_1b, N_BITS))
-        print("minterms_3b:" + minterms_to_string[tt1.MinTermType, P](minterms_3b, N_BITS))
-        print("minterms_2b:" + minterms_to_string[tt1.MinTermType, P](minterms_2b, N_BITS))
+        print("minterms_1b:" + minterms_to_string[tt1.MinTermType, P](minterms_1b.data, N_BITS))
+        print("minterms_3b:" + minterms_to_string[tt1.MinTermType, P](minterms_3b.data, N_BITS))
+        print("minterms_2b:" + minterms_to_string[tt1.MinTermType, P](minterms_2b.data, N_BITS))
         error = True
 
     return error

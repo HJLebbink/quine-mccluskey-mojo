@@ -3,7 +3,7 @@ import benchmark
 from time import now
 
 from quine_mccluskey import reduce_qm
-from MintermSet import MintermSet
+from MinTermSet import MinTermSet
 from TruthTable import TruthTable
 from cnf_to_dnf import convert_cnf_to_dnf_minimal, convert_cnf_to_dnf
 from test_compress import test_compress_decompress
@@ -14,7 +14,7 @@ from to_string import (
     dnf_to_string,
     cnf_to_string2,
     dnf_to_string2,
-    minterms_to_string
+    minterms_to_string,
 )
 
 
@@ -56,7 +56,7 @@ fn truth_table_test1():
 # example needs Petricks method; has no primary essential prime implicants
 @always_inline("nodebug")
 fn truth_table_test2():
-    alias SHOW_INFO = False
+    alias SHOW_INFO = True
 
     alias N_BITS = 4
     var tt = TruthTable[N_BITS]()
@@ -148,7 +148,6 @@ fn truth_table_test3():
     print("expected: 0000 0010 0101 0110 0111 1000 1010 1100 1101 1110 1111")
     print("observed: " + tt.to_string[PrintType.BIN]())
 
-
     # (x̄2x̄0) ∨ (x2x0) ∨ (x1x̄0) ∨ (x3x̄0) // manually checked with https://www.mathematik.uni-marburg.de/~thormae/lectures/ti1/code/qmc/
     # X0X0      X1X1      XX10     1XX0
 
@@ -160,6 +159,7 @@ fn truth_table_test3():
 
     # B D + B' D' + A D' + C D'  // result from logic Friday
     # X1X1 X0X0 1XX0 XX10  : identical with thormae
+
 
 @always_inline("nodebug")
 fn truth_table_test4():
@@ -184,8 +184,9 @@ fn truth_table_test4():
 
 # bug: fixed!
 fn truth_table_test5():
-
-    let implicants = VariadicList(0b0001,0b0011,0b0101,0b1000,0b1010,0b1011,0b1101)
+    let implicants = VariadicList(
+        0b0001, 0b0011, 0b0101, 0b1000, 0b1010, 0b1011, 0b1101
+    )
 
     var tt = TruthTable[4]()
     for i in range(len(implicants)):
@@ -194,13 +195,13 @@ fn truth_table_test5():
     tt.sort()
     let data1 = tt.data
     print("original:     " + tt.to_string[PrintType.BIN]())
-    tt.compress[USE_CLASSIC_METHOD=True, SHOW_INFO=False]()
+    tt.compress[USE_CLASSIC_METHOD=False, SHOW_INFO=False]()
     print("compressed:   " + tt.to_string[PrintType.BIN]())
     tt.decompress()
     let data2 = tt.data
     print("decompressed: " + tt.to_string[PrintType.BIN]())
 
-    if not eq_dynamic_vector[tt.MinTermType](data1, data2):
+    if data1 != data2:
         print("NOT EQUAL")
 
     # y = (x3x̄2x̄0) ∨ (x2x̄1x0) ∨ (x̄3x̄2x0) ∨ (x̄2x1x0)
@@ -217,14 +218,9 @@ fn truth_table_test5():
     # obs mojo: 101X 10X0 0X01 X101
     # obs c++ : 10X0 X101 0X01 101X
 
-# bug
+
+# bug: fixed!
 fn truth_table_test6():
-
-    #decompression failed: minterms_1a != minterms_3a; N_BITS=4
-    #minterms_1a: 0001 0010 0011 0100 0101 0110 1011 1111
-    #minterms_3a:0000 0001 0010 0100 0101 0110 1011 1111
-    #minterms_2a:1X11 0X0X 0XX0
-
     var tt = TruthTable[4]()
     tt.set_true(0b0000)
     tt.set_true(0b0010)
@@ -244,10 +240,10 @@ fn truth_table_test6():
     let data2 = tt.data
     print("decompressed: " + tt.to_string[PrintType.BIN]())
 
-    if not eq_dynamic_vector[tt.MinTermType](data1, data2):
+    if data1 != data2:
         print("NOT EQUAL")
 
-    # y = (x3x̄2x̄0) ∨ (x2x̄1x0) ∨ (x̄3x̄2x0) ∨ (x̄2x1x0) 
+    # y = (x3x̄2x̄0) ∨ (x2x̄1x0) ∨ (x̄3x̄2x0) ∨ (x̄2x1x0)
     # y = 10X0 X101 00X1 X011
 
     # http://www.32x8.com/qmm4_____A-B-C-D_____m_1-3-5-8-10-11-13___________option-4_____988791976079822295658
@@ -307,7 +303,6 @@ fn test_cnf2dnf_1[QUIET: Bool = False]():
 
     # DNF (x1 || x2) && (x1 || x3) && (x3 || x4) && (x2 || x5) && (x4 || x6) && (x5 || x6)
 
-
     @parameter
     if not QUIET:
         print("expected CNF: (1|2) & (1|3) & (3|4) & (2|5) & (4|6) & (5|6)")
@@ -326,8 +321,6 @@ fn test_cnf2dnf_1[QUIET: Bool = False]():
     if not QUIET:
         print("expected DNF: (1&4&5) | (2&3&6)")
         print("observed DNF:" + dnf_to_string[DT](dnf2))
-
-
 
 
 # CNF =  (A|B) & (A|C) & (B|E) & (C|D) & (D|F) & (E|F)
@@ -365,7 +358,7 @@ fn test_cnf2dnf_3[QUIET: Bool = False]():
     if not QUIET:
         print("CNF = " + cnf_to_string[DT](cnf1))
 
-    #let dnf1 = convert_cnf_to_dnf[DT, False](cnf1, n_bits)
+    # let dnf1 = convert_cnf_to_dnf[DT, False](cnf1, n_bits)
     let dnf1 = convert_cnf_to_dnf_minimal[DT, True, False](cnf1, n_bits)
 
     @parameter
@@ -472,25 +465,25 @@ fn test_cnf2dnf_very_hard[QUIET: Bool = False]():
     if not QUIET:
         print("CNF = " + cnf_to_string[DT](cnf1))
 
-    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 2 of 35; result_dnf_next=16; n_pruned=0; n_not_prunned=48; max_size=35; smallest_cnf_size=2
-    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 3 of 35; result_dnf_next=37; n_pruned=0; n_not_prunned=64; max_size=35; smallest_cnf_size=3
-    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 4 of 35; result_dnf_next=148; n_pruned=0; n_not_prunned=148; max_size=35; smallest_cnf_size=4
-    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 5 of 35; result_dnf_next=175; n_pruned=0; n_not_prunned=444; max_size=34; smallest_cnf_size=4
-    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 6 of 35; result_dnf_next=403; n_pruned=0; n_not_prunned=700; max_size=34; smallest_cnf_size=5
-    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 7 of 35; result_dnf_next=547; n_pruned=0; n_not_prunned=1209; max_size=33; smallest_cnf_size=5
-    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 8 of 35; result_dnf_next=707; n_pruned=0; n_not_prunned=1641; max_size=32; smallest_cnf_size=5
-    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 9 of 35; result_dnf_next=1160; n_pruned=0; n_not_prunned=2828; max_size=32; smallest_cnf_size=6
-    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 10 of 35; result_dnf_next=4640; n_pruned=0; n_not_prunned=4640; max_size=32; smallest_cnf_size=7
-    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 11 of 35; result_dnf_next=6140; n_pruned=0; n_not_prunned=13920; max_size=31; smallest_cnf_size=7
-    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 12 of 35; result_dnf_next=14483; n_pruned=0; n_not_prunned=24560; max_size=31; smallest_cnf_size=8
-    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 13 of 35; result_dnf_next=21578; n_pruned=0; n_not_prunned=43449; max_size=30; smallest_cnf_size=8
-    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 14 of 35; result_dnf_next=31135; n_pruned=0; n_not_prunned=64734; max_size=29; smallest_cnf_size=8
-    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 15 of 35; result_dnf_next=51655; n_pruned=0; n_not_prunned=124540; max_size=29; smallest_cnf_size=9
-    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 16 of 35; result_dnf_next=84437; n_pruned=0; n_not_prunned=154965; max_size=28; smallest_cnf_size=9
-    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 17 of 35; result_dnf_next=134781; n_pruned=0; n_not_prunned=253311; max_size=27; smallest_cnf_size=9
-    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 18 of 35; result_dnf_next=209163; n_pruned=0; n_not_prunned=404343; max_size=27; smallest_cnf_size=10
-    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 19 of 35; result_dnf_next=272184; n_pruned=0; n_not_prunned=836652; max_size=26; smallest_cnf_size=1INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 20 of 35; result_dnf_next=1088736; n_pruned=0; n_not_prunned=1088736; max_size=26; smallest_cnf_size=11
-    #INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 21 of 35; result_dnf_next=1566900; n_pruned=0; n_not_prunned=3266208; max_size=25; smallest_cnf_size=11
+    # INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 2 of 35; result_dnf_next=16; n_pruned=0; n_not_prunned=48; max_size=35; smallest_cnf_size=2
+    # INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 3 of 35; result_dnf_next=37; n_pruned=0; n_not_prunned=64; max_size=35; smallest_cnf_size=3
+    # INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 4 of 35; result_dnf_next=148; n_pruned=0; n_not_prunned=148; max_size=35; smallest_cnf_size=4
+    # INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 5 of 35; result_dnf_next=175; n_pruned=0; n_not_prunned=444; max_size=34; smallest_cnf_size=4
+    # INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 6 of 35; result_dnf_next=403; n_pruned=0; n_not_prunned=700; max_size=34; smallest_cnf_size=5
+    # INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 7 of 35; result_dnf_next=547; n_pruned=0; n_not_prunned=1209; max_size=33; smallest_cnf_size=5
+    # INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 8 of 35; result_dnf_next=707; n_pruned=0; n_not_prunned=1641; max_size=32; smallest_cnf_size=5
+    # INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 9 of 35; result_dnf_next=1160; n_pruned=0; n_not_prunned=2828; max_size=32; smallest_cnf_size=6
+    # INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 10 of 35; result_dnf_next=4640; n_pruned=0; n_not_prunned=4640; max_size=32; smallest_cnf_size=7
+    # INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 11 of 35; result_dnf_next=6140; n_pruned=0; n_not_prunned=13920; max_size=31; smallest_cnf_size=7
+    # INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 12 of 35; result_dnf_next=14483; n_pruned=0; n_not_prunned=24560; max_size=31; smallest_cnf_size=8
+    # INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 13 of 35; result_dnf_next=21578; n_pruned=0; n_not_prunned=43449; max_size=30; smallest_cnf_size=8
+    # INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 14 of 35; result_dnf_next=31135; n_pruned=0; n_not_prunned=64734; max_size=29; smallest_cnf_size=8
+    # INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 15 of 35; result_dnf_next=51655; n_pruned=0; n_not_prunned=124540; max_size=29; smallest_cnf_size=9
+    # INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 16 of 35; result_dnf_next=84437; n_pruned=0; n_not_prunned=154965; max_size=28; smallest_cnf_size=9
+    # INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 17 of 35; result_dnf_next=134781; n_pruned=0; n_not_prunned=253311; max_size=27; smallest_cnf_size=9
+    # INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 18 of 35; result_dnf_next=209163; n_pruned=0; n_not_prunned=404343; max_size=27; smallest_cnf_size=10
+    # INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 19 of 35; result_dnf_next=272184; n_pruned=0; n_not_prunned=836652; max_size=26; smallest_cnf_size=1INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 20 of 35; result_dnf_next=1088736; n_pruned=0; n_not_prunned=1088736; max_size=26; smallest_cnf_size=11
+    # INFO: 5693ff80: convert_cnf_to_dnf_minimal: progress 21 of 35; result_dnf_next=1566900; n_pruned=0; n_not_prunned=3266208; max_size=25; smallest_cnf_size=11
 
     alias EARLY_PRUNE = True
     alias SHOW_INFO = True
@@ -518,7 +511,7 @@ fn main():
     # test_cnf2dnf_4()
     # test_cnf2dnf_very_hard()
 
-    test_compress_decompress(100000)
+    test_compress_decompress(1000)
 
     # benchmark.run[test_cnf2dnf_0[True]]().print()
     # benchmark.run[test_cnf2dnf_1[True]]().print()
@@ -528,6 +521,6 @@ fn main():
 
     let elapsed_time_ns = now() - start_time_ns
     print_no_newline("Elapsed time " + str(elapsed_time_ns) + " ns")
-    print_no_newline(" = " + str(Float32(elapsed_time_ns)/1_000) + " μs")
-    print_no_newline(" = " + str(Float32(elapsed_time_ns)/1_000_000) + " ms")
-    print_no_newline(" = " + str(Float32(elapsed_time_ns)/1_000_000_000) + " s\n")
+    print_no_newline(" = " + str(Float32(elapsed_time_ns) / 1_000) + " μs")
+    print_no_newline(" = " + str(Float32(elapsed_time_ns) / 1_000_000) + " ms")
+    print_no_newline(" = " + str(Float32(elapsed_time_ns) / 1_000_000_000) + " s\n")

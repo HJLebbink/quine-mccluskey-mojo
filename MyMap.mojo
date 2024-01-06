@@ -1,3 +1,7 @@
+from algorithm.sort import sort
+from tools import eq_dynamic_vector
+
+
 struct MyMap[Key: DType, Value: CollectionElement](
     CollectionElement, Sized, Stringable
 ):
@@ -54,7 +58,7 @@ struct MyMap[Key: DType, Value: CollectionElement](
         let size = len(self.keys)
         for i in range(size):
             if key == self.keys[i]:
-                if i == size-1:
+                if i == size - 1:
                     _ = self.keys.pop_back()
                     _ = self.values.pop_back()
                 else:
@@ -77,22 +81,26 @@ struct MyMap[Key: DType, Value: CollectionElement](
         return False
 
 
-struct MySet[Value: DType](CollectionElement, Sized, Stringable):
-    var data: DynamicVector[SIMD[Value, 1]]
+struct MySet[T: DType](CollectionElement, Sized, Stringable):
+    var data: DynamicVector[SIMD[T, 1]]
+    var is_sorted: Bool
 
     @always_inline("nodebug")
     fn __init__(inout self):
-        self.data = DynamicVector[SIMD[Value, 1]]()
+        self.data = DynamicVector[SIMD[T, 1]]()
+        self.is_sorted = True
 
     # trait CollectionElement
     @always_inline("nodebug")
     fn __copyinit__(inout self, existing: Self):
         self.data.__copyinit__(existing.data)
+        self.is_sorted = existing.is_sorted
 
     # trait CollectionElement
     @always_inline("nodebug")
     fn __moveinit__(inout self, owned existing: Self):
         self.data = existing.data ^
+        self.is_sorted = existing.is_sorted
 
     # trait CollectionElement
     @always_inline("nodebug")
@@ -115,37 +123,71 @@ struct MySet[Value: DType](CollectionElement, Sized, Stringable):
     fn __len__(self) -> Int:
         return len(self.data)
 
-    fn add(inout self, value: SIMD[Value, 1]):
-        for i in range(len(self.data)):
-            if value == self.data[i]:
+    fn __eq__(self, other: Self) -> Bool:
+        if self.is_sorted and other.is_sorted:
+            return eq_dynamic_vector[T](self.data, other.data)
+
+        print("WARNING performance: MySet:__eq__ on unsorted data")
+        var a = self
+        a.sort()
+        var b = other
+        b.sort()
+        return a == b
+
+    fn __ne__(self, other: Self) -> Bool:
+        return not (self == other)
+
+    @always_inline("nodebug")
+    fn add[CHECK_CONTAINS: Bool = True](inout self, value: SIMD[T, 1]):
+        @parameter
+        if CHECK_CONTAINS:
+            if self.contains(value):
                 return
         self.data.push_back(value)
+        self.is_sorted = False
 
-    fn add(inout self, values: MySet[Value]):
+    @always_inline("nodebug")
+    fn add[CHECK_CONTAINS: Bool = True](inout self, values: MySet[T]):
         for i in range(len(values)):
             # this can be done more efficient
-            self.add(values.data[i])
+            self.add[CHECK_CONTAINS](values.data[i])
 
-    fn remove(inout self, value: SIMD[Value, 1]):
+    fn remove(inout self, value: SIMD[T, 1]):
         let size = len(self.data)
         for i in range(size):
             if value == self.data[i]:
-                if i == (size-1):
+                if i == (size - 1):
                     _ = self.data.pop_back()
+                    # NOTE this set is still sorted!
                 else:
                     self.data[i] = self.data.pop_back()
+                    self.is_sorted = False
                 return
 
-    fn remove(inout self, values: MySet[Value]):
+    @always_inline("nodebug")
+    fn remove(inout self, values: MySet[T]):
         for i in range(len(values)):
             # this can be done more efficient
             self.remove(values.data[i])
 
     @always_inline("nodebug")
-    fn contains(self, value: SIMD[Value, 1]) -> Bool:
-        for i in range(len(self.data)):
-            if value == self.data[i]:
-                return True
+    fn sort(inout self):
+        if self.is_sorted:
+            return
+        else:
+            sort[T](self.data)
+            self.is_sorted = True
+
+    @always_inline("nodebug")
+    fn contains(self, value: SIMD[T, 1]) -> Bool:
+        if self.is_sorted:
+            for i in range(len(self.data)):
+                if value <= self.data[i]:
+                    return value == self.data[i]
+        else:
+            for i in range(len(self.data)):
+                if value == self.data[i]:
+                    return True
         return False
 
 

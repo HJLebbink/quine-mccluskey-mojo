@@ -1,6 +1,7 @@
 from collections.vector import DynamicVector
 from algorithm.sort import sort
 
+
 fn get_bit[T: DType](v: SIMD[T, 1], pos: Int) -> Bool:
     return ((v >> pos).__and__(1)) == 1
 
@@ -30,6 +31,7 @@ fn get_minterm_type[bit_width: Int]() -> DType:
 
 fn get_dk_offset[T: DType]() -> Int:
     alias n_bytes = T.sizeof()
+
     @parameter
     if n_bytes == 1:
         return 4
@@ -43,8 +45,10 @@ fn get_dk_offset[T: DType]() -> Int:
         constrained[False]()
     return 32
 
+
 fn get_dk_mask[T: DType]() -> SIMD[T, 1]:
     alias n_bytes = T.sizeof()
+
     @parameter
     if n_bytes == 1:
         return 0xF
