@@ -2,7 +2,7 @@
 
 Implementation of Quine-McCluskey and Petrick Methods in Modular Mojo
 
-The Quine-McCluskey method is an exact algorithm employed for Boolean function simplification. While traditionally applied in digital circuit design and optimization, I would like to use it for optimizing software. This method takes a set of minterms representing a Boolean function and systematically combines them to identify things called prime implicants. Through grouping terms with similar binary representations, the algorithm constructs a table, in which we can identify essential prime implicants. The outcome is a minimal sum-of-products (SOP) expression, representing a simplified form of the given Boolean function.
+The Quine-McCluskey method is an exact algorithm used for Boolean function simplification. While traditionally applied in digital circuit design and optimization, I would like to use it for optimizing software. This method takes a set of minterms representing a Boolean function and systematically combines them to identify things called prime implicants. Through grouping terms with similar binary representations, the algorithm constructs a table, in which we can identify essential prime implicants. The outcome is a minimal sum-of-products (SOP) expression, representing a simplified form of the given Boolean function.
 
 Petrick's method, another exact technique used in digital circuit design, is used for solving cyclic covering problems. It constructs a matrix based on the prime implicants derived from the Quine-McCluskey method and subsequently applying a process to identify the minimal cover. This minimal cover represents the smallest form of the given Boolean function.
 
@@ -63,6 +63,6 @@ The Mojo code has a parameter `SHOW_INFO: Bool` which, when set to true, will di
 
 Petrick's method addresses the covering problem, a known NP-complete problem: thus exact algorithm *may* take exponetial time in the worst cast. Having a efficient implementation is not a luxery.
 
-But more important, with Mojo, this algorithm can be run at compile time. We can extract logic from our programming language, minimize it to its absolute minimum, and produce high-performance code. While compile time may be notable slower, consider it an investment in achieving faster runtime performance.
+But more important, with Mojo, this algorithm can be run at **compile time**. We can extract logic from our programming language, minimize it to its absolute minimum, and produce high-performance code. While compile time may be notable slower, consider it an investment in achieving faster runtime performance.
 
 Attempting to write this algorithm as a template program in C++ may not be the most pleasant experience... Hence Mojo.

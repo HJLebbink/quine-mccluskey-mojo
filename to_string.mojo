@@ -55,8 +55,8 @@ fn dnf_to_string2(dnf: DynamicVector[DynamicVector[String]]) -> String:
     return cnf_dnf_to_string2[False](dnf)
 
 
-fn cnf_dnf_to_string[T: DType, is_cnf: Bool](cnf: DynamicVector[SIMD[T, 1]]) -> String:
-    alias n_bits = T.sizeof() * 8
+fn cnf_dnf_to_string[T: DType, IS_CNF: Bool](cnf: DynamicVector[SIMD[T, 1]]) -> String:
+    alias N_BITS = T.sizeof() * 8
     var cnf_copy = cnf
     sort[T](cnf_copy)
     var result: String = ""
@@ -66,28 +66,28 @@ fn cnf_dnf_to_string[T: DType, is_cnf: Bool](cnf: DynamicVector[SIMD[T, 1]]) -> 
         if first_disj:
             first_disj = False
         else:
-            if is_cnf:
+            if IS_CNF:
                 result += "&"
             else:
                 result += "|"
         result += " ("
         var first_e = True
-        for pos in range(n_bits):
+        for pos in range(N_BITS):
             if get_bit(disj, pos):
                 if first_e:
                     first_e = False
                 else:
-                    if is_cnf:
+                    if IS_CNF:
                         result += "|"
                     else:
                         result += "&"
                 result += str(pos)
         result += ") "
-    return result
+    return result.strip()
 
 
 fn cnf_dnf_to_string2[
-    is_cnf: Bool
+    IS_CNF: Bool
 ](cnf: DynamicVector[DynamicVector[String]]) -> String:
     var conjunctions = MySetStr()
     for i in range(cnf.size):
@@ -99,7 +99,7 @@ fn cnf_dnf_to_string2[
             if first:
                 first = False
             else:
-                if is_cnf:
+                if IS_CNF:
                     s += "|"
                 else:
                     s += "&"
@@ -112,7 +112,7 @@ fn cnf_dnf_to_string2[
         if first:
             first = False
         else:
-            if is_cnf:
+            if IS_CNF:
                 result += "&"
             else:
                 result += "|"
@@ -121,11 +121,11 @@ fn cnf_dnf_to_string2[
 
 
 fn minterms_to_string[
-    T: DType, P: PrintType = PrintType.BIN, cap: Int = 0
+    T: DType, P: PrintType = PrintType.BIN, CAP: Int = 0
 ](minterms: DynamicVector[SIMD[T, 1]], n_vars: Int) -> String:
     var result: String = ""
-    var cap2 = cap
-    if cap == 0:
+    var cap2 = CAP
+    if CAP == 0:
         cap2 = 0xFFFF_FFFF  # something large
     let s = math.min(len(minterms), cap2)
     for i in range(s):

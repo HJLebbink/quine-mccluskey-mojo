@@ -1,3 +1,5 @@
+from algorithm.sort import sort
+
 from MyMap import MyMap
 from MySet import MySet
 from cnf_to_dnf import convert_cnf_to_dnf_minimal, convert_cnf_to_dnf
@@ -6,11 +8,9 @@ from to_string import (
     PrintType,
     minterm_to_string,
     minterms_to_string,
-    int_to_bin_string,
     cnf_to_string,
     dnf_to_string,
 )
-from algorithm.sort import sort
 
 # using PI_table_1 = std::map<PI, std::unordered_set<MT>>;
 # using PI_table_2 = std::map<MT, std::unordered_set<PI>>;
@@ -339,6 +339,7 @@ fn print_pi_table1_raw[
         print("")
 
 
+# petrick_simplify is the main entry point
 fn petrick_simplify[
     PI: DType, MT: DType, N_BITS: Int, SHOW_INFO: Bool = True
 ](prime_implicants: MySet[PI], minterms: MySet[MT]) -> MySet[PI]:

@@ -1,347 +1,17 @@
-from random import random_ui64
 import benchmark
 from time import now
 
-from quine_mccluskey import reduce_qm
-from MinTermSet import MinTermSet
 from TruthTable import TruthTable
 from cnf_to_dnf import convert_cnf_to_dnf_minimal, convert_cnf_to_dnf
-from unit_tests import test_compress_decompress
-from tools import eq_dynamic_vector, get_bit
+from unit_tests import run_all_unit_tests, test_compress_decompress
 from to_string import (
     PrintType,
     cnf_to_string,
     dnf_to_string,
-    cnf_to_string2,
-    dnf_to_string2,
-    minterms_to_string,
 )
 
 
-@always_inline("nodebug")
-fn truth_table_test1():
-    alias SHOW_INFO = False
-
-    var tt = TruthTable[3]()
-    tt.set_true(0b011)
-    tt.set_true(0b100)
-    tt.set_true(0b101)
-    tt.set_true(0b110)
-    tt.set_true(0b111)
-
-    # uncompressed:
-    # ABC ->F0
-    # 011 -> 1
-    # 100 -> 1
-    # 101 -> 1
-    # 110 -> 1
-    # 111 -> 1
-    #
-    # compressed:
-    # ABC ->F0
-    # X11 -> 1
-    # 1XX -> 1
-
-    tt.sort()
-    print("expected: 011 100 101 110 111")
-    print("observed: " + tt.to_string[PrintType.BIN]())
-    tt.compress[USE_CLASSIC_METHOD=False, SHOW_INFO=SHOW_INFO]()
-    print("expected: 1XX X11")
-    print("observed: " + tt.to_string[PrintType.BIN]())
-    tt.decompress()
-    print("expected: 011 100 101 110 111")
-    print("observed: " + tt.to_string[PrintType.BIN]())
-
-
-# example needs Petricks method; has no primary essential prime implicants
-@always_inline("nodebug")
-fn truth_table_test2():
-    alias SHOW_INFO = True
-
-    alias N_BITS = 4
-    var tt = TruthTable[N_BITS]()
-
-    let implicants = VariadicList(
-        0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
-    )  # has primary essential prime implicants; Petricks method is not needed
-    for i in range(len(implicants)):
-        tt.set_true(implicants[i])
-
-    #     ABCD
-    #  0: 0000 -> 1
-    #  1: 0001 -> 0
-    #  2: 0010 -> 1
-    #  3: 0011 -> 1
-    #  4: 0100 -> 1
-    #  5: 0101 -> 1
-    #  6: 0110 -> 1
-    #  7: 0111 -> 1
-    #  8: 1000 -> 1
-    #  9: 1001 -> 1
-    # 10: 1010 -> 1
-    # 11: 1011 -> 1
-    # 12: 1100 -> 1
-    # 13: 1101 -> 1
-    # 14: 1110 -> 0
-    # 15: 1111 -> 0
-
-    tt.sort()
-    print("expected: 0000 0010 0011 0100 0101 0110 0111 1000 1001 1010 1011 1100 1101")
-    print("observed: " + tt.to_string[PrintType.BIN]())
-    tt.compress[USE_CLASSIC_METHOD=False, SHOW_INFO=SHOW_INFO]()
-    print("expected: 10XX 0X1X 0XX0 X10X")
-    print("observed: " + tt.to_string[PrintType.BIN]())
-    tt.decompress()
-    print("expected: 0000 0010 0011 0100 0101 0110 0111 1000 1001 1010 1011 1100 1101")
-    print("observed: " + tt.to_string[PrintType.BIN]())
-
-    # (x̄3x̄0), (x̄3x1), (x2x̄1), (x3x̄2) // manually checked with https://www.mathematik.uni-marburg.de/~thormae/lectures/ti1/code/qmc/
-    # 0XX0 0X1X X10X 10XX : identical with observed
-
-    # A'D' + A'C + BC' + AB'  // result from http://www.32x8.com/var4.html
-    # 0XX0 0X1X X10X 10XX : identical with observed
-
-    # A~B + ~C~D + ~AC + B~C  // result from https://ictlab.kz/extra/Kmap/
-    # 10XX XX00 0X1X X10X : NOT identical with thormae
-
-    # A' B  + B' C  + A C'  + C' D'  // result from logic Friday
-    # 01XX X01X 1X0X XX00 ??? mess: not sure what causes this
-    # 10XX X10X 0X1X XX11
-
-
-@always_inline("nodebug")
-fn truth_table_test3():
-    alias SHOW_INFO = False
-
-    alias N_BITS = 4
-    var tt = TruthTable[N_BITS]()
-    let implicants = VariadicList(
-        0, 2, 5, 6, 7, 8, 10, 12, 13, 14, 15
-    )  # has primary essential prime implicants; Petricks method is not needed
-    for i in range(len(implicants)):
-        tt.set_true(implicants[i])
-
-    #     ABCD
-    #  0: 0000 -> 1
-    #  1: 0001 -> 0
-    #  2: 0010 -> 1
-    #  3: 0011 -> 0
-    #  4: 0100 -> 0
-    #  5: 0101 -> 1
-    #  6: 0110 -> 1
-    #  7: 0111 -> 1
-    #  8: 1000 -> 1
-    #  9: 1001 -> 0
-    # 10: 1010 -> 1
-    # 11: 1011 -> 0
-    # 12: 1100 -> 1
-    # 13: 1101 -> 1
-    # 14: 1110 -> 1
-    # 15: 1111 -> 1
-
-    tt.sort()
-    print("expected: 0000 0010 0101 0110 0111 1000 1010 1100 1101 1110 1111")
-    print("observed: " + tt.to_string[PrintType.BIN]())
-    tt.compress[USE_CLASSIC_METHOD=True, SHOW_INFO=SHOW_INFO]()
-    print("expected: X0X0 X1X1 1XX0 XX10")
-    print("observed: " + tt.to_string[PrintType.BIN]())
-    tt.decompress()
-    print("expected: 0000 0010 0101 0110 0111 1000 1010 1100 1101 1110 1111")
-    print("observed: " + tt.to_string[PrintType.BIN]())
-
-    # (x̄2x̄0) ∨ (x2x0) ∨ (x1x̄0) ∨ (x3x̄0) // manually checked with https://www.mathematik.uni-marburg.de/~thormae/lectures/ti1/code/qmc/
-    # X0X0      X1X1      XX10     1XX0
-
-    # C~D + BD + A~D + ~B~D  // result from https://ictlab.kz/extra/Kmap/
-    # XX10 X1X1 1XX0 X0X0  : identical with thormae
-
-    # B'D' + CD' + BD + AD'  // result from http://www.32x8.com/var4.html
-    # X0X0 XX10 X1X1 1XX0  : identical with thormae
-
-    # B D + B' D' + A D' + C D'  // result from logic Friday
-    # X1X1 X0X0 1XX0 XX10  : identical with thormae
-
-
-@always_inline("nodebug")
-fn truth_table_test4():
-    alias SHOW_INFO = True
-
-    var tt = TruthTable[8]()
-    tt.set_true(0b11100111)
-    tt.set_true(0b11100001)
-    tt.set_true(0b01100001)
-    tt.set_true(0b00100001)
-
-    tt.sort()
-    print("expected: 00100001 01100001 11100001 11100111")
-    print("observed: " + tt.to_string[PrintType.BIN]())
-    tt.compress[SHOW_INFO]()
-    print("expected: 11100111 0X100001 X1100001")
-    print("observed: " + tt.to_string[PrintType.BIN]())
-    tt.decompress()
-    print("expected: 00100001 01100001 11100001 11100111")
-    print("observed: " + tt.to_string[PrintType.BIN]())
-
-
-# bug: fixed!
-fn truth_table_test5():
-    let implicants = VariadicList(
-        0b0001, 0b0011, 0b0101, 0b1000, 0b1010, 0b1011, 0b1101
-    )
-
-    var tt = TruthTable[4]()
-    for i in range(len(implicants)):
-        tt.set_true(implicants[i])
-
-    tt.sort()
-    let data1 = tt.data
-    print("original:     " + tt.to_string[PrintType.BIN]())
-    tt.compress[USE_CLASSIC_METHOD=False, SHOW_INFO=False]()
-    print("compressed:   " + tt.to_string[PrintType.BIN]())
-    tt.decompress()
-    let data2 = tt.data
-    print("decompressed: " + tt.to_string[PrintType.BIN]())
-
-    if data1 != data2:
-        print("NOT EQUAL")
-
-    # y = (x3x̄2x̄0) ∨ (x2x̄1x0) ∨ (x̄3x̄2x0) ∨ (x̄2x1x0)
-    # y = 10X0 X101 00X1 X011
-
-    # http://www.32x8.com/qmm4_____A-B-C-D_____m_1-3-5-8-10-11-13___________option-4_____988791976079822295658
-    # y = A'B'D + B'CD + BC'D + AB'D'
-    # y = 00X1 X011 X101 10X0
-
-    # old c++ code:
-    # y = A'B'D + AB'D' + B'CD + BC'D
-    # y = 00X1 10X0 X011 X101
-
-    # obs mojo: 101X 10X0 0X01 X101
-    # obs c++ : 10X0 X101 0X01 101X
-
-
-# bug: fixed!
-fn truth_table_test6():
-    var tt = TruthTable[4]()
-    tt.set_true(0b0000)
-    tt.set_true(0b0010)
-    tt.set_true(0b0011)
-    tt.set_true(0b0100)
-    tt.set_true(0b0101)
-    tt.set_true(0b0110)
-    tt.set_true(0b1011)
-    tt.set_true(0b1111)
-
-    tt.sort()
-    let data1 = tt.data
-    print("original:     " + tt.to_string[PrintType.BIN]())
-    tt.compress[USE_CLASSIC_METHOD=True, SHOW_INFO=True]()
-    print("compressed:   " + tt.to_string[PrintType.BIN]())
-    tt.decompress()
-    let data2 = tt.data
-    print("decompressed: " + tt.to_string[PrintType.BIN]())
-
-    if data1 != data2:
-        print("NOT EQUAL")
-
-    # y = (x3x̄2x̄0) ∨ (x2x̄1x0) ∨ (x̄3x̄2x0) ∨ (x̄2x1x0)
-    # y = 10X0 X101 00X1 X011
-
-    # http://www.32x8.com/qmm4_____A-B-C-D_____m_1-3-5-8-10-11-13___________option-4_____988791976079822295658
-    # y = A'B'D + B'CD + BC'D + AB'D'
-    # y = 00X1 X011 X101 10X0
-
-    # old c++ code:
-    # y = A'B'D + AB'D' + B'CD + BC'D
-    # y = 00X1 10X0 X011 X101
-
-    # obs mojo: 101X 10X0 0X01 X101
-    # obs c++ : 10X0 X101 0X01 101X
-
-
-# CNF =  (1|2) & (3|4)
-# DNF =  (1&3) | (2&3) | (1&4) | (2&4)
-@always_inline("nodebug")
-fn test_cnf2dnf_0[QUIET: Bool = False]():
-    alias SHOW_INFO = False
-    alias DT = DType.uint32
-    alias N_BITS = 8
-
-    var cnf1 = DynamicVector[SIMD[DT, 1]]()
-    cnf1.push_back((1 << 1) | (1 << 2))
-    cnf1.push_back((1 << 3) | (1 << 4))
-
-    @parameter
-    if not QUIET:
-        print("expected CNF: (1|2) & (3|4)")
-        print("observed CNF:" + cnf_to_string[DT](cnf1))
-    let dnf1 = convert_cnf_to_dnf_minimal[DT, True, SHOW_INFO](cnf1, N_BITS)
-
-    @parameter
-    if not QUIET:
-        print("expected DNF: (1&3) | (2&3) | (1&4) | (2&4)")
-        print("observed DNF:" + dnf_to_string[DT](dnf1))
-
-
-# CNF =  (1|2) & (1|3) & (3|4) & (2|5) & (4|6) & (5|6)
-# DNF =  (1&4&5) | (2&3&4&5) | (2&3&6) | (1&2&4&6) | (1&3&5&6)
-fn test_cnf2dnf_1[QUIET: Bool = False]():
-    alias DT = DType.uint32
-    alias N_BITS = 8
-
-    var cnf1 = DynamicVector[SIMD[DT, 1]]()
-    cnf1.push_back((1 << 1) | (1 << 2))
-    cnf1.push_back((1 << 3) | (1 << 4))
-    cnf1.push_back((1 << 1) | (1 << 3))
-    cnf1.push_back((1 << 5) | (1 << 6))
-    cnf1.push_back((1 << 2) | (1 << 5))
-    cnf1.push_back((1 << 4) | (1 << 6))
-
-    # answer according to wolfram:
-    # abdf acef ade bcde bcf
-    # 145 1246 1356 2345 236
-    # DNF = (145) & (2345) & (236) & (1246) & (1356)
-
-    # DNF (x1 || x2) && (x1 || x3) && (x3 || x4) && (x2 || x5) && (x4 || x6) && (x5 || x6)
-
-    @parameter
-    if not QUIET:
-        print("expected CNF: (1|2) & (1|3) & (3|4) & (2|5) & (4|6) & (5|6)")
-        print("observed CNF:" + cnf_to_string[DT](cnf1))
-
-    let dnf1 = convert_cnf_to_dnf[DT, False](cnf1, N_BITS)
-
-    @parameter
-    if not QUIET:
-        print("expected DNF: (1&4&5) | (2&3&4&5) | (2&3&6) | (1&2&4&6) | (1&3&5&6)")
-        print("observed DNF:" + dnf_to_string[DT](dnf1))
-
-    let dnf2 = convert_cnf_to_dnf_minimal[DT, True, False](cnf1, N_BITS)
-
-    @parameter
-    if not QUIET:
-        print("expected DNF: (1&4&5) | (2&3&6)")
-        print("observed DNF:" + dnf_to_string[DT](dnf2))
-
-
-# CNF =  (A|B) & (A|C) & (B|E) & (C|D) & (D|F) & (E|F)
-# DNF =  (A&B&D&F) | (A&C&E&F) | (A&D&E) | (B&C&D&E) | (B&C&F)
-fn test_cnf2dnf_2[QUIET: Bool = False]():
-    alias DT = DType.uint32
-    # std::vector<std::vector<std::string>> cnf1;
-    # cnf1.push_back({ "A", "B" });
-    # cnf1.push_back({ "C", "D" });
-    # cnf1.push_back({ "A", "C" });
-    # cnf1.push_back({ "E", "F" });
-    # cnf1.push_back({ "B", "E" });
-    # cnf1.push_back({ "D", "F" });
-
-    # print("CNF = " + cnf_to_string2(cnf1))
-    # const auto dnf1 = cnf::convert_cnf_to_dnf<OF>(cnf1);
-    # print("DNF = " + dnf_to_string(dnf1))
-
-
-fn test_cnf2dnf_3[QUIET: Bool = False]():
+fn cnf2dnf_bigtest_1[QUIET: Bool]():
     alias DT = DType.uint32
     alias n_bits = 16
     alias n_conjunctions = 500
@@ -367,7 +37,7 @@ fn test_cnf2dnf_3[QUIET: Bool = False]():
         print("DNF = " + dnf_to_string[DT](dnf1))
 
 
-fn test_cnf2dnf_4[QUIET: Bool = False]():
+fn cnf2dnf_bigtest_2[QUIET: Bool]():
     alias DT = DType.uint32
     alias n_bits = 32
     alias n_conjunctions = 20
@@ -394,7 +64,7 @@ fn test_cnf2dnf_4[QUIET: Bool = False]():
         print("DNF = " + dnf_to_string[DT](dnf1))
 
 
-fn test_cnf2dnf_5[QUIET: Bool = False]():
+fn cnf2dnf_bigtest_3[QUIET: Bool = False]():
     alias DT = DType.uint64
     alias n_bits = 32
     alias n_conjunctions = 10
@@ -419,7 +89,7 @@ fn test_cnf2dnf_5[QUIET: Bool = False]():
 
 
 # found very hard example when generating popcnt_6_3
-fn test_cnf2dnf_very_hard[QUIET: Bool = False]():
+fn cnf2dnf_bigtest_4[QUIET: Bool = False]():
     alias DT = DType.uint64
     alias n_bits = 64
 
@@ -494,31 +164,37 @@ fn test_cnf2dnf_very_hard[QUIET: Bool = False]():
     if not QUIET:
         print("DNF = " + dnf_to_string[DT](dnf1))
 
+fn test_static_compress():
+
+    alias implicants = VariadicList(
+        0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
+    )  # example needs Petricks method; has no primary essential prime implicants
+
+    alias TT1 = TruthTable[4](implicants, compress=False)
+    print("TT1 = " + TT1.pretty_print_blif())
+
+    # static compression fails v0.6.1
+    #/__w/modular/modular/Kernels/mojo/algorithm/sort.mojo:91:51: note:                                   failed to fold operation pop.call_llvm_intrinsic{fastmathFlags: #pop<fmf none>, intrin: "llvm.ctlz" : !kgen.string}(13 : index, #pop<simd false> : !pop.scalar<bool>)
+    # mojo: error: failed to run the pass manager
+    # alias TT2 = TruthTable[4](implicants, compress=True)
+    # print("TT2 = " + TT2.pretty_print_blif())
 
 fn main():
     let start_time_ns = now()
 
-    # truth_table_test1()
-    truth_table_test2()
-    # truth_table_test3()
-    # truth_table_test4()
-    # truth_table_test5()
-    # truth_table_test6()
+    run_all_unit_tests[QUIET=True]()
+    test_compress_decompress(n_tests=2000)
 
-    # test_cnf2dnf_0()
-    # test_cnf2dnf_1()
-    # test_cnf2dnf_2() #TODO
-    # test_cnf2dnf_3[True]()
-    # test_cnf2dnf_4()
-    # test_cnf2dnf_very_hard()
+    #test_static_compress()
 
-    # test_compress_decompress(1000)
-
-    # benchmark.run[test_cnf2dnf_0[True]]().print()
-    # benchmark.run[test_cnf2dnf_1[True]]().print()
-    # benchmark.run[test_cnf2dnf_2[True]]().print()
-    # benchmark.run[test_cnf2dnf_3[True]]().print()
-    # benchmark.run[test_cnf2dnf_4[True]]().print()
+    #cnf2dnf_bigtest_1[False]() # 3 seconds
+    #cnf2dnf_bigtest_2[False]() # 2.6 seconds
+    #cnf2dnf_bigtest_3[False]() # 0.006 seconds
+    #cnf2dnf_bigtest_4[False]() # impossible large! eons
+ 
+    # benchmark.run[cnf2dnf_bigtest_1[True]]().print()
+    # benchmark.run[cnf2dnf_bigtest_2[True]]().print()
+    # benchmark.run[cnf2dnf_bigtest_3[True]]().print()
 
     let elapsed_time_ns = now() - start_time_ns
     print_no_newline("Elapsed time " + str(elapsed_time_ns) + " ns")
