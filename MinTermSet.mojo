@@ -3,7 +3,7 @@ from math.bit import ctpop
 from algorithm.sort import sort
 from tools import get_bit, get_dk_mask
 from to_string import PrintType, minterms_to_string, minterm_to_string
-from MyMap import MySet
+from MySet import MySet
 
 
 struct MinTermSet[T: DType, N_BITS: Int](CollectionElement, Sized, Stringable):
@@ -118,7 +118,6 @@ struct MinTermSet[T: DType, N_BITS: Int](CollectionElement, Sized, Stringable):
         else:
             self.data[n_bits_set].push_back(value)
             self.is_sorted = False
-
 
     fn get(self, n_bits_set: Int) -> Self.Q:
         debug_assert(n_bits_set < Self.n_sets, "invalid idx")

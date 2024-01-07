@@ -4,7 +4,7 @@ from algorithm.sort import sort
 from quine_mccluskey import reduce_qm, reduce_qm_classic
 from tools import get_bit, set_bit, clear_bit, get_minterm_type
 from to_string import PrintType, minterms_to_string, minterm_to_string
-from MyMap import MySet
+from MySet import MySet
 
 struct TruthTable[N_BITS: Int](Stringable):
     alias MinTermType: DType = get_minterm_type[N_BITS]()

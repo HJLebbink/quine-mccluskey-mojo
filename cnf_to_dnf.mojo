@@ -4,10 +4,10 @@ from tools import my_cast
 
 
 fn convert_cnf_to_dnf[
-    DT: DType, SHOW_INFO: Bool
-](cnf: DynamicVector[SIMD[DT, 1]], n_bits: Int) -> DynamicVector[SIMD[DT, 1]]:
-    var result_dnf = DynamicVector[SIMD[DT, 1]]()
-    var result_dnf_next = DynamicVector[SIMD[DT, 1]]()
+    T: DType, SHOW_INFO: Bool
+](cnf: DynamicVector[SIMD[T, 1]], n_bits: Int) -> DynamicVector[SIMD[T, 1]]:
+    var result_dnf = DynamicVector[SIMD[T, 1]]()
+    var result_dnf_next = DynamicVector[SIMD[T, 1]]()
     var first = True
     for i in range(len(cnf)):
         let disjunction = cnf[i]
@@ -19,7 +19,7 @@ fn convert_cnf_to_dnf[
         else:
             for pos in range(n_bits):
                 if get_bit(disjunction, pos):
-                    let x: SIMD[DT, 1] = 1 << pos
+                    let x: SIMD[T, 1] = 1 << pos
                     for j in range(len(result_dnf)):
                         let z = x.__or__(result_dnf[j])
                         update_dnf(result_dnf_next, z)
@@ -34,9 +34,9 @@ fn convert_cnf_to_dnf[
 # which could be computationally challenging, hence convert_cnf_to_dnf_minimal only
 # computes the smallest ones
 fn convert_cnf_to_dnf_minimal[
-    DT: DType, EARLY_PRUNE: Bool, SHOW_INFO: Bool
-](cnf: DynamicVector[SIMD[DT, 1]], n_bits: Int) -> DynamicVector[SIMD[DT, 1]]:
-    var result_dnf = DynamicVector[SIMD[DT, 1]]()
+    T: DType, EARLY_PRUNE: Bool, SHOW_INFO: Bool
+](cnf: DynamicVector[SIMD[T, 1]], n_bits: Int) -> DynamicVector[SIMD[T, 1]]:
+    var result_dnf = DynamicVector[SIMD[T, 1]]()
 
     @parameter
     if EARLY_PRUNE:
@@ -60,7 +60,7 @@ fn convert_cnf_to_dnf_minimal[
                     if get_bit(disjunction, pos):
                         result_dnf.push_back(1 << pos)
             else:
-                var result_dnf_next = DynamicVector[SIMD[DT, 1]]()
+                var result_dnf_next = DynamicVector[SIMD[T, 1]]()
                 var smallest_cnf_size: Int = 0x7FFF_FFFF
                 var max_size: Int = 0
                 var n_pruned: Int = 0
@@ -68,9 +68,9 @@ fn convert_cnf_to_dnf_minimal[
 
                 for pos in range(n_bits):
                     if get_bit(disjunction, pos):
-                        let x: SIMD[DT, 1] = 1 << pos
+                        let x: SIMD[T, 1] = 1 << pos
                         for j in range(len(result_dnf)):
-                            let z: SIMD[DT, 1] = x.__or__(result_dnf[j])
+                            let z: SIMD[T, 1] = x.__or__(result_dnf[j])
 
                             # Early prune CNFs that cannot become the smallest cnf
                             let conjunction_size: Int = math.bit.ctpop(z).to_int()
@@ -91,7 +91,7 @@ fn convert_cnf_to_dnf_minimal[
                                 n_not_pruned += 1
 
                             if consider_z:
-                                update_dnf[DT](result_dnf_next, z)
+                                update_dnf[T](result_dnf_next, z)
 
                 @parameter
                 if SHOW_INFO:
@@ -112,7 +112,7 @@ fn convert_cnf_to_dnf_minimal[
 
             n_disjunction_done += 1
     else:  # do a late prune, can be 20 times slower
-        result_dnf = convert_cnf_to_dnf[DT, SHOW_INFO](cnf, n_bits)
+        result_dnf = convert_cnf_to_dnf[T, SHOW_INFO](cnf, n_bits)
 
     # select only the smallest DNFs
     var smallest_cnf_size = 0x7FFF_FFFF
@@ -122,7 +122,7 @@ fn convert_cnf_to_dnf_minimal[
         if count < smallest_cnf_size:
             smallest_cnf_size = count
 
-    var result_dnf_minimal = DynamicVector[SIMD[DT, 1]]()
+    var result_dnf_minimal = DynamicVector[SIMD[T, 1]]()
 
     for i in range(len(result_dnf)):
         let conjunction = result_dnf[i]
@@ -133,6 +133,7 @@ fn convert_cnf_to_dnf_minimal[
     return result_dnf_minimal
 
 
+# update the DNF one item at a time
 fn update_dnf_1[
     T: DType
 ](
@@ -153,6 +154,7 @@ fn update_dnf_1[
     return True
 
 
+# update the DNF N items at a time
 fn update_dnf_N[T: DType, SIZE: Int](
     dnf: DTypePointer[T],
     z: SIMD[T, SIZE],

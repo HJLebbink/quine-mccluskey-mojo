@@ -1,11 +1,10 @@
 from collections.vector import DynamicVector, InlinedFixedVector
 from math.bit import ctpop
 
-from vector_tools import equal_vector, print_vector
 from MinTermSet import MinTermSet
 from petrick import petrick_simplify
 from to_string import PrintType, minterm_to_string, minterms_to_string
-from MyMap import MySet
+from MySet import MySet
 from tools import get_dk_offset, eq_dynamic_vector
 
 

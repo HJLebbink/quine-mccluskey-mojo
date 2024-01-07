@@ -2,7 +2,7 @@ from collections.vector import DynamicVector
 from algorithm.sort import sort
 
 from tools import get_bit, get_dk_offset
-from MyMap import MySet, MySetStr
+from MySet import MySet, MySetStr
 
 
 @register_passable("trivial")

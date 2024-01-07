@@ -1,8 +1,7 @@
 from random import random_ui64
 
 from TruthTable import TruthTable
-from MyMap import MySet
-from tools import eq_dynamic_vector
+from MySet import MySet
 from to_string import PrintType, minterms_to_string
 
 

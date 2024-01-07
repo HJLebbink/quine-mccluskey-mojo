@@ -1,4 +1,5 @@
-from MyMap import MyMap, MySet
+from MyMap import MyMap
+from MySet import MySet
 from cnf_to_dnf import convert_cnf_to_dnf_minimal, convert_cnf_to_dnf
 from tools import get_bit, get_dk_offset, get_dk_mask
 from to_string import (
@@ -454,4 +455,4 @@ fn petrick_simplify[
                 + minterm_to_string[PI](secondary.essential_pi[i], N_BITS)
             )
 
-    return essential_pi^
+    return essential_pi ^

@@ -6,7 +6,7 @@ from quine_mccluskey import reduce_qm
 from MinTermSet import MinTermSet
 from TruthTable import TruthTable
 from cnf_to_dnf import convert_cnf_to_dnf_minimal, convert_cnf_to_dnf
-from test_compress import test_compress_decompress
+from unit_tests import test_compress_decompress
 from tools import eq_dynamic_vector, get_bit
 from to_string import (
     PrintType,
@@ -512,7 +512,7 @@ fn main():
     # test_cnf2dnf_4()
     # test_cnf2dnf_very_hard()
 
-    #test_compress_decompress(1000)
+    # test_compress_decompress(1000)
 
     # benchmark.run[test_cnf2dnf_0[True]]().print()
     # benchmark.run[test_cnf2dnf_1[True]]().print()
