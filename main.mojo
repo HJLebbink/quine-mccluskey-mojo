@@ -60,6 +60,7 @@ fn truth_table_test2():
 
     alias N_BITS = 4
     var tt = TruthTable[N_BITS]()
+
     let implicants = VariadicList(
         0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
     )  # has primary essential prime implicants; Petricks method is not needed
@@ -498,7 +499,7 @@ fn main():
     let start_time_ns = now()
 
     # truth_table_test1()
-    # truth_table_test2()
+    truth_table_test2()
     # truth_table_test3()
     # truth_table_test4()
     # truth_table_test5()
@@ -511,7 +512,7 @@ fn main():
     # test_cnf2dnf_4()
     # test_cnf2dnf_very_hard()
 
-    test_compress_decompress(1000)
+    #test_compress_decompress(1000)
 
     # benchmark.run[test_cnf2dnf_0[True]]().print()
     # benchmark.run[test_cnf2dnf_1[True]]().print()
