@@ -173,9 +173,17 @@ fn test_static_compress():
     alias TT1 = TruthTable[4](implicants, compress=False)
     print("TT1 = " + TT1.pretty_print_blif())
 
-    # static compression fails v0.6.1
-    #/__w/modular/modular/Kernels/mojo/algorithm/sort.mojo:91:51: note:                                   failed to fold operation pop.call_llvm_intrinsic{fastmathFlags: #pop<fmf none>, intrin: "llvm.ctlz" : !kgen.string}(13 : index, #pop<simd false> : !pop.scalar<bool>)
+    # static compression fails v0.7.0
+    # /__w/modular/modular/Kernels/mojo/stdlib/algorithm/sort.mojo:231:1: note:                     failed to interpret function @$stdlib::$algorithm::$sort::sort[$stdlib::$builtin::$dtype::DType]($stdlib::$collections::$vector::DynamicVector[$stdlib::$builtin::$simd::SIMD[*(0,0), {1}]]&),_231x9_type=ui8
+    # /__w/modular/modular/Kernels/mojo/stdlib/algorithm/sort.mojo:244:15: note:                       failed to evaluate call
+    # /__w/modular/modular/Kernels/mojo/stdlib/algorithm/sort.mojo:198:1: note:                         failed to interpret function @$stdlib::$algorithm::$sort::sort[$stdlib::$builtin::$dtype::DType]($stdlib::$memory::$unsafe::Pointer[$stdlib::$builtin::$simd::SIMD[*(0,0), {1}], {{0}}]&,$stdlib::$builtin::$int::Int),_198x9_type=ui8
+    # /__w/modular/modular/Kernels/mojo/stdlib/algorithm/sort.mojo:215:47: note:                           failed to evaluate call
+    # /__w/modular/modular/Kernels/mojo/stdlib/algorithm/sort.mojo:94:1: note:                             failed to interpret function @$stdlib::$algorithm::$sort::_quicksort[AnyRegType,fn[AnyRegType]($0, $0, /) capturing -> $stdlib::$builtin::$bool::Bool]($stdlib::$memory::$unsafe::Pointer[*(0,0), {{0}}],$stdlib::$builtin::$int::Int),_95x5_type=scalar<ui8>,_95x23_cmp_fn=@"$stdlib::$algorithm::$sort::sort[$stdlib::$builtin::$dtype::DType]($stdlib::$memory::$unsafe::Pointer[$stdlib::$builtin::$simd::SIMD[*(0,0), {1}], {{0}}]&,$stdlib::$builtin::$int::Int)__less_than_equal[AnyRegType]($0,$0)"<:dtype ui8, :type ?>
+    # /__w/modular/modular/Kernels/mojo/stdlib/algorithm/sort.mojo:100:60: note:                               failed to evaluate call
+    # /__w/modular/modular/Kernels/mojo/stdlib/algorithm/sort.mojo:89:1: note:                                 failed to interpret function @$stdlib::$algorithm::$sort::_estimate_initial_height($stdlib::$builtin::$int::Int)
+    # /__w/modular/modular/Kernels/mojo/stdlib/algorithm/sort.mojo:91:51: note:                                   failed to fold operation pop.call_llvm_intrinsic{fastmathFlags: #pop<fmf none>, intrin: "llvm.ctlz" : !kgen.string}(13 : index, #pop<simd false> : !pop.scalar<bool>)
     # mojo: error: failed to run the pass manager
+
     # alias TT2 = TruthTable[4](implicants, compress=True)
     # print("TT2 = " + TT2.pretty_print_blif())
 
@@ -200,4 +208,5 @@ fn main():
     print_no_newline("Elapsed time " + str(elapsed_time_ns) + " ns")
     print_no_newline(" = " + str(Float32(elapsed_time_ns) / 1_000) + " μs")
     print_no_newline(" = " + str(Float32(elapsed_time_ns) / 1_000_000) + " ms")
-    print_no_newline(" = " + str(Float32(elapsed_time_ns) / 1_000_000_000) + " s\n")
+    print_no_newline(" = " + str(Float32(elapsed_time_ns) / 1_000_000_000) + " s")
+    print_no_newline(" = " + str(Float32(elapsed_time_ns) / 60_000_000_000) + " min\n")
