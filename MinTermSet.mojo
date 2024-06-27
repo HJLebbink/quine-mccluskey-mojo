@@ -1,32 +1,34 @@
-from collections.vector import DynamicVector
-from math.bit import ctpop
-from algorithm.sort import sort
+from bit import pop_count
+
 from tools import get_bit, get_dk_mask
 from to_string import PrintType, minterms_to_string, minterm_to_string
 from MySet import MySet
 
 
 struct MinTermSet[T: DType, N_BITS: Int](CollectionElement, Sized, Stringable):
-    alias Q = DynamicVector[SIMD[T, 1]]
+    alias Q = List[Scalar[T]]
     alias n_sets = N_BITS + 1
 
     var n_elements: Int
     var max_bit_count: Int
     var is_sorted: Bool
-    var data: DynamicVector[Self.Q]
+    var data: List[Self.Q]
 
     fn __init__(inout self):
         self.n_elements = 0
         self.max_bit_count = 0
         self.is_sorted = True
-        self.data = DynamicVector[Self.Q](Self.n_sets)
+        self.data = List[Self.Q](capacity=Self.n_sets)
         for i in range(Self.n_sets):
-            self.data.push_back(Self.Q())
+            self.data.append(Self.Q())
 
     fn __eq__(self, other: Self) -> Bool:
         if not (self.is_sorted) or not (other.is_sorted):
-            print("WARNING performance: MinTermSet: __eq__: self or other is not sorted!")
-            #return False
+            print(
+                "WARNING performance: MinTermSet: __eq__: self or other is not"
+                " sorted!"
+            )
+            # return False
         if len(self) != len(other):
             # print("MinTermSet eq: returns False (A)")
             return False
@@ -67,7 +69,7 @@ struct MinTermSet[T: DType, N_BITS: Int](CollectionElement, Sized, Stringable):
         self.n_elements = existing.n_elements
         self.max_bit_count = existing.max_bit_count
         self.is_sorted = existing.is_sorted
-        self.data = existing.data ^
+        self.data = existing.data^
 
     # trait Stringable
     fn __str__(self) -> String:
@@ -88,9 +90,9 @@ struct MinTermSet[T: DType, N_BITS: Int](CollectionElement, Sized, Stringable):
 
     fn add[
         CHECK_CONTAINS: Bool = True, SHOW_INFO: Bool = False
-    ](inout self, value: SIMD[T, 1]):
-        alias dk_mask: SIMD[T, 1] = get_dk_mask[T]()
-        let n_bits_set = ctpop(value & dk_mask).to_int()
+    ](inout self, value: Scalar[T]):
+        alias dk_mask: Scalar[T] = get_dk_mask[T]()
+        var n_bits_set = int(pop_count(value & dk_mask))
 
         # @parameter
         # if SHOW_INFO:
@@ -113,10 +115,10 @@ struct MinTermSet[T: DType, N_BITS: Int](CollectionElement, Sized, Stringable):
                     already_present = True
                     break
             if not already_present:
-                self.data[n_bits_set].push_back(value)
+                self.data[n_bits_set].append(value)
                 self.is_sorted = False
         else:
-            self.data[n_bits_set].push_back(value)
+            self.data[n_bits_set].append(value)
             self.is_sorted = False
 
     fn get(self, n_bits_set: Int) -> Self.Q:
@@ -126,7 +128,7 @@ struct MinTermSet[T: DType, N_BITS: Int](CollectionElement, Sized, Stringable):
     fn to_set(self) -> MySet[T]:
         var result = MySet[T]()
         for i in range(Self.n_sets):
-            let x = self.data[i]
+            var x = self.data[i]
             for j in range(len(x)):
                 result.add[CHECK_CONTAINS=False](x[j])
-        return result ^
+        return result^

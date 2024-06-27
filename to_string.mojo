@@ -1,6 +1,3 @@
-from collections.vector import DynamicVector
-from algorithm.sort import sort
-
 from tools import get_bit, get_dk_offset
 from MySet import MySet, MySetStr
 
@@ -32,37 +29,37 @@ struct PrintType(Stringable):
             return "UNKNOWN"
 
 
-fn vector_to_string(v: DynamicVector[Int]) -> String:
+fn vector_to_string(v: List[Int]) -> String:
     var result: String = ""
     for i in range(len(v)):
         result += str(v[i])
     return result
 
 
-fn cnf_to_string[T: DType](cnf: DynamicVector[SIMD[T, 1]]) -> String:
+fn cnf_to_string[T: DType](cnf: List[Scalar[T]]) -> String:
     return cnf_dnf_to_string[T, True](cnf)
 
 
-fn cnf_to_string2(cnf: DynamicVector[DynamicVector[String]]) -> String:
+fn cnf_to_string2(cnf: List[List[String]]) -> String:
     return cnf_dnf_to_string2[True](cnf)
 
 
-fn dnf_to_string[T: DType](dnf: DynamicVector[SIMD[T, 1]]) -> String:
+fn dnf_to_string[T: DType](dnf: List[Scalar[T]]) -> String:
     return cnf_dnf_to_string[T, False](dnf)
 
 
-fn dnf_to_string2(dnf: DynamicVector[DynamicVector[String]]) -> String:
+fn dnf_to_string2(dnf: List[List[String]]) -> String:
     return cnf_dnf_to_string2[False](dnf)
 
 
-fn cnf_dnf_to_string[T: DType, IS_CNF: Bool](cnf: DynamicVector[SIMD[T, 1]]) -> String:
+fn cnf_dnf_to_string[T: DType, IS_CNF: Bool](cnf: List[Scalar[T]]) -> String:
     alias N_BITS = T.sizeof() * 8
     var cnf_copy = cnf
     sort[T](cnf_copy)
     var result: String = ""
     var first_disj = True
     for i in range(cnf_copy.size):
-        let disj = cnf_copy[i]
+        var disj = cnf_copy[i]
         if first_disj:
             first_disj = False
         else:
@@ -86,12 +83,10 @@ fn cnf_dnf_to_string[T: DType, IS_CNF: Bool](cnf: DynamicVector[SIMD[T, 1]]) -> 
     return result.strip()
 
 
-fn cnf_dnf_to_string2[
-    IS_CNF: Bool
-](cnf: DynamicVector[DynamicVector[String]]) -> String:
+fn cnf_dnf_to_string2[IS_CNF: Bool](cnf: List[List[String]]) -> String:
     var conjunctions = MySetStr()
     for i in range(cnf.size):
-        let conj = cnf[i]
+        var conj = cnf[i]
         # sort[String](conj) # TODO cannot sort String in v0.6.1
         var s: String = " ("
         var first = True
@@ -105,7 +100,7 @@ fn cnf_dnf_to_string2[
                     s += "&"
             s += conj[j]
         s += ") "
-        conjunctions.add(s ^)
+        conjunctions.add(s^)
     var result: String = ""
     var first = True
     for i in range(len(conjunctions)):
@@ -122,12 +117,12 @@ fn cnf_dnf_to_string2[
 
 fn minterms_to_string[
     T: DType, P: PrintType = PrintType.BIN, CAP: Int = 0
-](minterms: DynamicVector[SIMD[T, 1]], n_vars: Int) -> String:
+](minterms: List[SIMD[T, 1]], n_vars: Int) -> String:
     var result: String = ""
     var cap2 = CAP
     if CAP == 0:
         cap2 = 0xFFFF_FFFF  # something large
-    let s = math.min(len(minterms), cap2)
+    var s = min(len(minterms), cap2)
     for i in range(s):
         result += minterm_to_string[T, P](minterms[i], n_vars)
 
@@ -148,7 +143,12 @@ fn minterm_to_string[
     if P == PrintType.BIN:
         return minterm_to_bin_string(mt, n_bits)
     elif P == PrintType.BIN_VERBOSE:
-        return minterm_to_bin_string(mt, n_bits) + " (" + int_to_bin_string(mt, n_bits*2)+")"
+        return (
+            minterm_to_bin_string(mt, n_bits)
+            + " ("
+            + int_to_bin_string(mt, n_bits * 2)
+            + ")"
+        )
     elif P == PrintType.VERBOSE:
         return minterm_to_bin_string(mt, n_bits) + "=" + str(mt)
     else:
@@ -160,8 +160,8 @@ fn minterm_to_bin_string[T: DType](mt: SIMD[T, 1], n_bits: Int) -> String:
     # print("INFO minterm_to_bin_string dk_offset "+str(dk_offset))
     var result: String = ""
     for i in range(n_bits):
-        let pos = (n_bits - i) - 1  # traverse in backwards order
-        let pos_X = pos + dk_offset
+        var pos = (n_bits - i) - 1  # traverse in backwards order
+        var pos_X = pos + dk_offset
         # print("pos "+str(pos)+"; pos_X " + str(pos_X))
         if tools.get_bit(mt, pos_X):
             result += "X"
@@ -175,7 +175,7 @@ fn minterm_to_bin_string[T: DType](mt: SIMD[T, 1], n_bits: Int) -> String:
 fn int_to_bin_string[T: DType](v: SIMD[T, 1], n_bits: Int) -> String:
     var result: String = ""
     for i in range(n_bits):
-        let pos = (n_bits - i) - 1  # traverse in backwards order
+        var pos = (n_bits - i) - 1  # traverse in backwards order
         if tools.get_bit(v, pos):
             result += "1"
         else:

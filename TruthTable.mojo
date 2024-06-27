@@ -1,5 +1,4 @@
-from collections.vector import DynamicVector, InlinedFixedVector
-from algorithm.sort import sort
+from collections.vector import InlinedFixedVector
 
 from quine_mccluskey import reduce_qm, reduce_qm_classic
 from tools import get_bit, set_bit, clear_bit, get_minterm_type
@@ -38,7 +37,7 @@ struct TruthTable[N_BITS_INPUT: Int](Stringable):
     @always_inline("nodebug")
     fn set_true(inout self, implicant: Int):
         if implicant < Self.MAX_VALUE:
-            self.data.add(SIMD[Self.MinTermType, 1](implicant))
+            self.data.add(Scalar[Self.MinTermType](implicant))
             self.is_compressed = False
             # NOTE: no need to update is_decompressed since only values without unknowns can be added
 
@@ -51,13 +50,13 @@ struct TruthTable[N_BITS_INPUT: Int](Stringable):
     fn get_value(self, idx: Int) -> Int:
         @parameter
         if N_BITS_INPUT <= 4:
-            return (self.data.data[idx].__and__(0xF)).to_int()
+            return int(self.data.data[idx].__and__(0xF))
         if N_BITS_INPUT <= 8:
-            return (self.data.data[idx].__and__(0xFF)).to_int()
+            return int(self.data.data[idx].__and__(0xFF))
         elif N_BITS_INPUT <= 16:
-            return (self.data.data[idx].__and__(0xFFFF)).to_int()
+            return int(self.data.data[idx].__and__(0xFFFF))
         elif N_BITS_INPUT <= 32:
-            return (self.data.data[idx].__and__(0xFFFF_FFFF)).to_int()
+            return int(self.data.data[idx].__and__(0xFFFF_FFFF))
         else:
             print("ERROR: 855c5c76: Not implemented yet")
         return 0
@@ -66,13 +65,13 @@ struct TruthTable[N_BITS_INPUT: Int](Stringable):
     fn get_unknown(self, idx: Int) -> Int:
         @parameter
         if N_BITS_INPUT <= 4:
-            return (self.data.data[idx] >> 4).to_int()
+            return int(self.data.data[idx] >> 4)
         elif N_BITS_INPUT <= 8:
-            return (self.data.data[idx] >> 8).to_int()
+            return int(self.data.data[idx] >> 8)
         elif N_BITS_INPUT <= 16:
-            return (self.data.data[idx] >> 16).to_int()
+            return int(self.data.data[idx] >> 16)
         elif N_BITS_INPUT <= 32:
-            return (self.data.data[idx] >> 32).to_int()
+            return int(self.data.data[idx] >> 32)
         else:
             print("ERROR: 61fd61ff: Not implemented yet")
         return 0
@@ -112,13 +111,13 @@ struct TruthTable[N_BITS_INPUT: Int](Stringable):
 
 
     @staticmethod
-    fn flatten(value: SIMD[Self.MinTermType, 1], unknown: SIMD[Self.MinTermType, 1], pos: Int, inout r: MySet[Self.MinTermType]):
+    fn flatten(value: Scalar[Self.MinTermType], unknown: Scalar[Self.MinTermType], pos: Int, inout r: MySet[Self.MinTermType]):
         if unknown == 0: # there are no unknown (dont knows) anymore, use the value as is
             r.add(value)
             return
         for new_pos in range(pos, N_BITS_INPUT):
             if get_bit(unknown, new_pos):
-                let unknown_new = clear_bit(unknown, new_pos)
+                var unknown_new = clear_bit(unknown, new_pos)
                 Self.flatten(clear_bit(value, new_pos), unknown_new, new_pos+1, r)
                 Self.flatten(set_bit(value, new_pos), unknown_new, new_pos+1, r)
 

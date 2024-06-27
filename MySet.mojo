@@ -1,16 +1,13 @@
-from algorithm.sort import sort
-from collections.vector import DynamicVector
-
 from tools import eq_dynamic_vector
 
 
 struct MySet[T: DType](CollectionElement, Sized, Stringable):
-    var data: DynamicVector[SIMD[T, 1]]
+    var data: List[Scalar[T]]
     var is_sorted: Bool
 
     @always_inline("nodebug")
     fn __init__(inout self):
-        self.data = DynamicVector[SIMD[T, 1]]()
+        self.data = List[SIMD[T, 1]]()
         self.is_sorted = True
 
     # trait CollectionElement
@@ -22,7 +19,7 @@ struct MySet[T: DType](CollectionElement, Sized, Stringable):
     # trait CollectionElement
     @always_inline("nodebug")
     fn __moveinit__(inout self, owned existing: Self):
-        self.data = existing.data ^
+        self.data = existing.data^
         self.is_sorted = existing.is_sorted
 
     # trait CollectionElement
@@ -34,7 +31,7 @@ struct MySet[T: DType](CollectionElement, Sized, Stringable):
     @always_inline("nodebug")
     fn __str__(self) -> String:
         var result: String = "["
-        let size = len(self.data)
+        var size = len(self.data)
         if size > 0:
             for i in range(size - 1):
                 result += str(self.data[i]) + ","
@@ -66,7 +63,7 @@ struct MySet[T: DType](CollectionElement, Sized, Stringable):
         if CHECK_CONTAINS:
             if self.contains(value):
                 return
-        self.data.push_back(value)
+        self.data.append(value)
         self.is_sorted = False
 
     @always_inline("nodebug")
@@ -75,15 +72,15 @@ struct MySet[T: DType](CollectionElement, Sized, Stringable):
             # this can be done more efficient
             self.add[CHECK_CONTAINS](values.data[i])
 
-    fn remove(inout self, value: SIMD[T, 1]):
-        let size = len(self.data)
+    fn remove(inout self, value: Scalar[T]):
+        var size = len(self.data)
         for i in range(size):
             if value == self.data[i]:
                 if i == (size - 1):
-                    _ = self.data.pop_back()
+                    _ = self.data.pop()
                     # NOTE this set is still sorted!
                 else:
-                    self.data[i] = self.data.pop_back()
+                    self.data[i] = self.data.pop()
                     self.is_sorted = False
                 return
 
@@ -102,7 +99,7 @@ struct MySet[T: DType](CollectionElement, Sized, Stringable):
             self.is_sorted = True
 
     @always_inline("nodebug")
-    fn contains(self, value: SIMD[T, 1]) -> Bool:
+    fn contains(self, value: Scalar[T]) -> Bool:
         if self.is_sorted:
             for i in range(len(self.data)):
                 if value <= self.data[i]:
@@ -115,11 +112,11 @@ struct MySet[T: DType](CollectionElement, Sized, Stringable):
 
 
 struct MySetStr(CollectionElement, Sized, Stringable):
-    var data: DynamicVector[String]
+    var data: List[String]
 
     @always_inline("nodebug")
     fn __init__(inout self):
-        self.data = DynamicVector[String]()
+        self.data = List[String]()
 
     # trait CollectionElement
     @always_inline("nodebug")
@@ -129,7 +126,7 @@ struct MySetStr(CollectionElement, Sized, Stringable):
     # trait CollectionElement
     @always_inline("nodebug")
     fn __moveinit__(inout self, owned existing: Self):
-        self.data = existing.data ^
+        self.data = existing.data^
 
     # trait CollectionElement
     @always_inline("nodebug")
@@ -140,7 +137,7 @@ struct MySetStr(CollectionElement, Sized, Stringable):
     @always_inline("nodebug")
     fn __str__(self) -> String:
         var result: String = "["
-        let size = len(self.data)
+        var size = len(self.data)
         if size > 0:
             for i in range(size - 1):
                 result += str(self.data[i]) + ","
@@ -156,7 +153,7 @@ struct MySetStr(CollectionElement, Sized, Stringable):
         for i in range(len(self.data)):
             if value == self.data[i]:
                 return
-        self.data.push_back(value)
+        self.data.append(value)
 
     fn contains(self, value: String) -> Bool:
         for i in range(len(self.data)):

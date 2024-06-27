@@ -1,17 +1,13 @@
-from collections.vector import DynamicVector
-from algorithm.sort import sort
-
-
-fn get_bit[T: DType](v: SIMD[T, 1], pos: Int) -> Bool:
+fn get_bit[T: DType](v: Scalar[T], pos: Int) -> Bool:
     return ((v >> pos).__and__(1)) == 1
 
 
-fn set_bit[T: DType](v: SIMD[T, 1], pos: Int) -> SIMD[T, 1]:
-    return v.__or__(SIMD[T, 1](1) << pos)
+fn set_bit[T: DType](v: Scalar[T], pos: Int) -> Scalar[T]:
+    return v.__or__(Scalar[T](1) << pos)
 
 
-fn clear_bit[T: DType](v: SIMD[T, 1], pos: Int) -> SIMD[T, 1]:
-    return v.__and__((SIMD[T, 1](1) << pos).__invert__())
+fn clear_bit[T: DType](v: Scalar[T], pos: Int) -> Scalar[T]:
+    return v.__and__((Scalar[T](1) << pos).__invert__())
 
 
 fn get_minterm_type[bit_width: Int]() -> DType:
@@ -46,7 +42,7 @@ fn get_dk_offset[T: DType]() -> Int:
     return 32
 
 
-fn get_dk_mask[T: DType]() -> SIMD[T, 1]:
+fn get_dk_mask[T: DType]() -> Scalar[T]:
     alias n_bytes = T.sizeof()
 
     @parameter
@@ -64,30 +60,30 @@ fn get_dk_mask[T: DType]() -> SIMD[T, 1]:
 
 
 # delete index by moving the last element into the deleted index
-fn delete_index[T: DType](inout v: DynamicVector[SIMD[T, 1]], idx: Int):
-    let s = v.size
+fn delete_index[T: DType](inout v: List[Scalar[T]], idx: Int):
+    var s = v.size
     if idx == s - 1:
-        _ = v.pop_back()
+        _ = v.pop()
     else:
-        v[idx] = v.pop_back()
+        v[idx] = v.pop()
 
 
 fn delete_indices[
     T: DType, idx_sorted: Bool = False
-](inout v: DynamicVector[SIMD[T, 1]], inout indices: DynamicVector[Int]):
-    let i_size = indices.size
+](inout v: List[Scalar[T]], inout indices: List[Int]):
+    var i_size = indices.size
 
     @parameter
     if not idx_sorted:
         sort(indices)
     for i in range(i_size):
-        let j = (i_size - i) - 1
+        var j = (i_size - i) - 1
         delete_index[T](v, indices[j])
 
 
 fn eq_dynamic_vector[
     T: DType
-](v1: DynamicVector[SIMD[T, 1]], v2: DynamicVector[SIMD[T, 1]]) -> Bool:
+](v1: List[Scalar[T]], v2: List[Scalar[T]]) -> Bool:
     if len(v1) != len(v2):
         return False
     for i in range(len(v1)):
@@ -96,5 +92,5 @@ fn eq_dynamic_vector[
     return True
 
 
-fn my_cast[T: DType, SIZE: Int](v: DynamicVector[SIMD[T, SIZE]]) -> DTypePointer[T]:
-    return rebind[DTypePointer[T]](v.data.value)
+# fn my_cast[T: DType, SIZE: Int](v: List[SIMD[T, SIZE]]) -> DTypePointer[T]:
+#    return rebind[DTypePointer[T]](v.data.value)

@@ -45,19 +45,20 @@ fn truth_table_test1[QUIET: Bool]():
     # 1XX -> 1
 
     tt.sort()
-    let data1 = tt.data
+    var data1 = tt.data
     if not QUIET:
         print("original:     " + tt.to_string[PrintType.BIN]())
     tt.compress[USE_CLASSIC_METHOD=False, SHOW_INFO=False]()
     if not QUIET:
         print("compressed:   " + tt.to_string[PrintType.BIN]())
     tt.decompress()
-    let data2 = tt.data
+    var data2 = tt.data
     if not QUIET:
         print("decompressed: " + tt.to_string[PrintType.BIN]() + "\n")
 
     if data1 != data2:
         print("ERROR UT: truth_table_test1: NOT EQUAL!")
+
 
 # example needs Petricks method; has no primary essential prime implicants
 fn truth_table_test2[QUIET: Bool]():
@@ -89,14 +90,14 @@ fn truth_table_test2[QUIET: Bool]():
     # 15: 1111 -> 0
 
     tt.sort()
-    let data1 = tt.data
+    var data1 = tt.data
     if not QUIET:
         print("original:     " + tt.to_string[PrintType.BIN]())
     tt.compress[USE_CLASSIC_METHOD=False, SHOW_INFO=False]()
     if not QUIET:
         print("compressed:   " + tt.to_string[PrintType.BIN]())
     tt.decompress()
-    let data2 = tt.data
+    var data2 = tt.data
     if not QUIET:
         print("decompressed: " + tt.to_string[PrintType.BIN]() + "\n")
 
@@ -145,14 +146,14 @@ fn truth_table_test3[QUIET: Bool]():
     # 15: 1111 -> 1
 
     tt.sort()
-    let data1 = tt.data
+    var data1 = tt.data
     if not QUIET:
         print("original:     " + tt.to_string[PrintType.BIN]())
     tt.compress[USE_CLASSIC_METHOD=True, SHOW_INFO=False]()
     if not QUIET:
         print("compressed:   " + tt.to_string[PrintType.BIN]())
     tt.decompress()
-    let data2 = tt.data
+    var data2 = tt.data
     if not QUIET:
         print("decompressed: " + tt.to_string[PrintType.BIN]() + "\n")
 
@@ -180,14 +181,14 @@ fn truth_table_test4[QUIET: Bool]():
     tt.set_true(0b00100001)
 
     tt.sort()
-    let data1 = tt.data
+    var data1 = tt.data
     if not QUIET:
         print("original:     " + tt.to_string[PrintType.BIN]())
     tt.compress[SHOW_INFO=False]()
     if not QUIET:
         print("compressed:   " + tt.to_string[PrintType.BIN]())
     tt.decompress()
-    let data2 = tt.data
+    var data2 = tt.data
     if not QUIET:
         print("decompressed: " + tt.to_string[PrintType.BIN]() + "\n")
 
@@ -206,14 +207,14 @@ fn truth_table_test5[QUIET: Bool]():
         tt.set_true(implicants[i])
 
     tt.sort()
-    let data1 = tt.data
+    var data1 = tt.data
     if not QUIET:
         print("original:     " + tt.to_string[PrintType.BIN]())
     tt.compress[USE_CLASSIC_METHOD=False, SHOW_INFO=False]()
     if not QUIET:
         print("compressed:   " + tt.to_string[PrintType.BIN]())
     tt.decompress()
-    let data2 = tt.data
+    var data2 = tt.data
     if not QUIET:
         print("decompressed: " + tt.to_string[PrintType.BIN]() + "\n")
 
@@ -248,14 +249,14 @@ fn truth_table_test6[QUIET: Bool]():
     tt.set_true(0b1111)
 
     tt.sort()
-    let data1 = tt.data
+    var data1 = tt.data
     if not QUIET:
         print("original:     " + tt.to_string[PrintType.BIN]())
     tt.compress[USE_CLASSIC_METHOD=True, SHOW_INFO=False]()
     if not QUIET:
         print("compressed:   " + tt.to_string[PrintType.BIN]())
     tt.decompress()
-    let data2 = tt.data
+    var data2 = tt.data
     if not QUIET:
         print("decompressed: " + tt.to_string[PrintType.BIN]() + "\n")
 
@@ -277,9 +278,7 @@ fn truth_table_test6[QUIET: Bool]():
     # obs c++ : 10X0 X101 0X01 101X
 
 
-
 fn test_compress_decompress(n_tests: Int = 1):
-
     fn test_compress_decompress_1x[N_BITS: Int](n_minterms: Int) -> Bool:
         alias MAX_MINTERM = (1 << N_BITS) - 1
         var tt1 = TruthTable[N_BITS]()
@@ -291,22 +290,22 @@ fn test_compress_decompress(n_tests: Int = 1):
             minterm_set.add(random_ui64(0, MAX_MINTERM).cast[tt1.MinTermType]())
 
         for i in range(len(minterm_set)):
-            tt1.set_true(minterm_set.data[i].to_int())
-            tt2.set_true(minterm_set.data[i].to_int())
+            tt1.set_true(int(minterm_set.data[i]))
+            tt2.set_true(int(minterm_set.data[i]))
 
         tt1.sort()
-        let minterms_1a = tt1.data
+        var minterms_1a = tt1.data
         tt1.compress[USE_CLASSIC_METHOD=True]()
-        let minterms_2a = tt1.data
+        var minterms_2a = tt1.data
         tt1.decompress()
-        let minterms_3a = tt1.data
+        var minterms_3a = tt1.data
 
         tt2.sort()
-        let minterms_1b = tt2.data
+        var minterms_1b = tt2.data
         tt2.compress[USE_CLASSIC_METHOD=False]()
-        let minterms_2b = tt2.data
+        var minterms_2b = tt2.data
         tt2.decompress()
-        let minterms_3b = tt2.data
+        var minterms_3b = tt2.data
 
         var error = False
 
@@ -317,23 +316,61 @@ fn test_compress_decompress(n_tests: Int = 1):
         # error = True
 
         if not (minterms_1a == minterms_3a):
-            print("ERROR UT: decompression failed: minterms_1a != minterms_3a; N_BITS=" + str(N_BITS))
-            print("minterms_1a:" + minterms_to_string[tt1.MinTermType, P](minterms_1a.data, N_BITS))
-            print("minterms_3a:" + minterms_to_string[tt1.MinTermType, P](minterms_3a.data, N_BITS))
-            print("minterms_2a:" + minterms_to_string[tt1.MinTermType, P](minterms_2a.data, N_BITS))
+            print(
+                "ERROR UT: decompression failed: minterms_1a != minterms_3a;"
+                " N_BITS="
+                + str(N_BITS)
+            )
+            print(
+                "minterms_1a:"
+                + minterms_to_string[tt1.MinTermType, P](
+                    minterms_1a.data, N_BITS
+                )
+            )
+            print(
+                "minterms_3a:"
+                + minterms_to_string[tt1.MinTermType, P](
+                    minterms_3a.data, N_BITS
+                )
+            )
+            print(
+                "minterms_2a:"
+                + minterms_to_string[tt1.MinTermType, P](
+                    minterms_2a.data, N_BITS
+                )
+            )
             error = True
 
         if not (minterms_1b == minterms_3b):
-            print("ERROR UT: decompression failed: minterms_1b != minterms_3b; N_BITS=" + str(N_BITS))
-            print("minterms_1b:" + minterms_to_string[tt1.MinTermType, P](minterms_1b.data, N_BITS))
-            print("minterms_3b:" + minterms_to_string[tt1.MinTermType, P](minterms_3b.data, N_BITS))
-            print("minterms_2b:" + minterms_to_string[tt1.MinTermType, P](minterms_2b.data, N_BITS))
+            print(
+                "ERROR UT: decompression failed: minterms_1b != minterms_3b;"
+                " N_BITS="
+                + str(N_BITS)
+            )
+            print(
+                "minterms_1b:"
+                + minterms_to_string[tt1.MinTermType, P](
+                    minterms_1b.data, N_BITS
+                )
+            )
+            print(
+                "minterms_3b:"
+                + minterms_to_string[tt1.MinTermType, P](
+                    minterms_3b.data, N_BITS
+                )
+            )
+            print(
+                "minterms_2b:"
+                + minterms_to_string[tt1.MinTermType, P](
+                    minterms_2b.data, N_BITS
+                )
+            )
             error = True
 
         return error
 
     for i in range(n_tests):
-        let n_minterms = random_ui64(1, 50).to_int()
+        var n_minterms = int(random_ui64(1, 50))
         if test_compress_decompress_1x[2](n_minterms):
             return
         if test_compress_decompress_1x[3](n_minterms):
@@ -356,21 +393,28 @@ fn test_compress_decompress(n_tests: Int = 1):
             return
 
         if (i & 0xFF) == 0:
-            print("INFO UT: test_compress_decompress: progress " + str(i) + "/" + str(n_tests))
+            print(
+                "INFO UT: test_compress_decompress: progress "
+                + str(i)
+                + "/"
+                + str(n_tests)
+            )
 
 
-fn cnf2dnf_check[T: DType, QUIET: Bool](
+fn cnf2dnf_check[
+    T: DType, QUIET: Bool
+](
     name: String,
-    cnf: DynamicVector[SIMD[T, 1]],
+    cnf: List[SIMD[T, 1]],
     expected_CNF: String,
-    dnf1: DynamicVector[SIMD[T, 1]],
+    dnf1: List[SIMD[T, 1]],
     expected_DNF1: String,
-    dnf2: DynamicVector[SIMD[T, 1]],
-    expected_DNF2: String):
-
-    let observed_CNF = cnf_to_string[T](cnf)
-    let observed_DNF1 = dnf_to_string[T](dnf1)
-    let observed_DNF2 = dnf_to_string[T](dnf2)
+    dnf2: List[SIMD[T, 1]],
+    expected_DNF2: String,
+):
+    var observed_CNF = cnf_to_string[T](cnf)
+    var observed_DNF1 = dnf_to_string[T](dnf1)
+    var observed_DNF2 = dnf_to_string[T](dnf2)
 
     if observed_CNF != expected_CNF:
         print("ERROR UT: " + name)
@@ -400,16 +444,26 @@ fn test_cnf2dnf_0[QUIET: Bool]():
     alias T = DType.uint32
     alias N_BITS = 8
 
-    var cnf = DynamicVector[SIMD[T, 1]]()
-    cnf.push_back((1 << 1) | (1 << 2))
-    cnf.push_back((1 << 3) | (1 << 4))
+    var cnf = List[SIMD[T, 1]]()
+    cnf.append((1 << 1) | (1 << 2))
+    cnf.append((1 << 3) | (1 << 4))
 
-    let dnf1 = convert_cnf_to_dnf[T, SHOW_INFO=False](cnf, N_BITS)
-    let dnf2 = convert_cnf_to_dnf_minimal[T, EARLY_PRUNE=True, SHOW_INFO=False](cnf, N_BITS)
-    let expected_CNF = "(1|2) & (3|4)"
-    let expected_DNF1 = "(1&3) | (2&3) | (1&4) | (2&4)"
-    let expected_DNF2 = "(1&3) | (2&3) | (1&4) | (2&4)"
-    cnf2dnf_check[T, QUIET]("test_cnf2dnf_0", cnf, expected_CNF, dnf1, expected_DNF1, dnf2, expected_DNF2)
+    var dnf1 = convert_cnf_to_dnf[T, SHOW_INFO=False](cnf, N_BITS)
+    var dnf2 = convert_cnf_to_dnf_minimal[T, EARLY_PRUNE=True, SHOW_INFO=False](
+        cnf, N_BITS
+    )
+    var expected_CNF = "(1|2) & (3|4)"
+    var expected_DNF1 = "(1&3) | (2&3) | (1&4) | (2&4)"
+    var expected_DNF2 = "(1&3) | (2&3) | (1&4) | (2&4)"
+    cnf2dnf_check[T, QUIET](
+        "test_cnf2dnf_0",
+        cnf,
+        expected_CNF,
+        dnf1,
+        expected_DNF1,
+        dnf2,
+        expected_DNF2,
+    )
 
 
 # CNF =  (1|2) & (1|3) & (3|4) & (2|5) & (4|6) & (5|6)
@@ -418,13 +472,13 @@ fn test_cnf2dnf_1[QUIET: Bool]():
     alias T = DType.uint32
     alias N_BITS = 8
 
-    var cnf = DynamicVector[SIMD[T, 1]]()
-    cnf.push_back((1 << 1) | (1 << 2))
-    cnf.push_back((1 << 3) | (1 << 4))
-    cnf.push_back((1 << 1) | (1 << 3))
-    cnf.push_back((1 << 5) | (1 << 6))
-    cnf.push_back((1 << 2) | (1 << 5))
-    cnf.push_back((1 << 4) | (1 << 6))
+    var cnf = List[SIMD[T, 1]]()
+    cnf.append((1 << 1) | (1 << 2))
+    cnf.append((1 << 3) | (1 << 4))
+    cnf.append((1 << 1) | (1 << 3))
+    cnf.append((1 << 5) | (1 << 6))
+    cnf.append((1 << 2) | (1 << 5))
+    cnf.append((1 << 4) | (1 << 6))
 
     # answer according to wolfram:
     # abdf acef ade bcde bcf
@@ -432,9 +486,19 @@ fn test_cnf2dnf_1[QUIET: Bool]():
     # DNF = (145) & (2345) & (236) & (1246) & (1356)
     # DNF (x1 || x2) && (x1 || x3) && (x3 || x4) && (x2 || x5) && (x4 || x6) && (x5 || x6)
 
-    let dnf1 = convert_cnf_to_dnf[T, SHOW_INFO=False](cnf, N_BITS)
-    let dnf2 = convert_cnf_to_dnf_minimal[T, EARLY_PRUNE=True, SHOW_INFO=False](cnf, N_BITS)
-    let expected_CNF = "(1|2) & (1|3) & (3|4) & (2|5) & (4|6) & (5|6)"
-    let expected_DNF1 = "(1&4&5) | (2&3&4&5) | (2&3&6) | (1&2&4&6) | (1&3&5&6)"
-    let expected_DNF2 = "(1&4&5) | (2&3&6)"
-    cnf2dnf_check[T, QUIET]("test_cnf2dnf_1", cnf, expected_CNF, dnf1, expected_DNF1, dnf2, expected_DNF2)
+    var dnf1 = convert_cnf_to_dnf[T, SHOW_INFO=False](cnf, N_BITS)
+    var dnf2 = convert_cnf_to_dnf_minimal[T, EARLY_PRUNE=True, SHOW_INFO=False](
+        cnf, N_BITS
+    )
+    var expected_CNF = "(1|2) & (1|3) & (3|4) & (2|5) & (4|6) & (5|6)"
+    var expected_DNF1 = "(1&4&5) | (2&3&4&5) | (2&3&6) | (1&2&4&6) | (1&3&5&6)"
+    var expected_DNF2 = "(1&4&5) | (2&3&6)"
+    cnf2dnf_check[T, QUIET](
+        "test_cnf2dnf_1",
+        cnf,
+        expected_CNF,
+        dnf1,
+        expected_DNF1,
+        dnf2,
+        expected_DNF2,
+    )

@@ -1,4 +1,3 @@
-import benchmark
 from time import now
 
 from TruthTable import TruthTable
@@ -17,20 +16,20 @@ fn cnf2dnf_bigtest_1[QUIET: Bool]():
     alias n_conjunctions = 500
     alias n_disjunctions = 8
 
-    var cnf1 = DynamicVector[SIMD[DT, 1]]()
+    var cnf1 = List[Scalar[DT]]()
     for i in range(n_conjunctions):
-        var conjunction: SIMD[DT, 1] = 0
+        var conjunction: Scalar[DT] = 0
         for j in range(n_disjunctions):
-            let r = random.random_ui64(0, 0xFFFF_FFFF).cast[DT]() % n_bits
+            var r = random.random_ui64(0, 0xFFFF_FFFF).cast[DT]() % n_bits
             conjunction |= 1 << r
-        cnf1.push_back(conjunction)
+        cnf1.append(conjunction)
 
     @parameter
     if not QUIET:
         print("CNF = " + cnf_to_string[DT](cnf1))
 
-    # let dnf1 = convert_cnf_to_dnf[DT, False](cnf1, n_bits)
-    let dnf1 = convert_cnf_to_dnf_minimal[DT, True, False](cnf1, n_bits)
+    # var dnf1 = convert_cnf_to_dnf[DT, False](cnf1, n_bits)
+    var dnf1 = convert_cnf_to_dnf_minimal[DT, True, False](cnf1, n_bits)
 
     @parameter
     if not QUIET:
@@ -43,13 +42,13 @@ fn cnf2dnf_bigtest_2[QUIET: Bool]():
     alias n_conjunctions = 20
     alias n_disjunctions = 8
 
-    var cnf1 = DynamicVector[SIMD[DT, 1]]()
+    var cnf1 = List[Scalar[DT]]()
     for i in range(n_conjunctions):
-        var conjunction: SIMD[DT, 1] = 0
+        var conjunction: Scalar[DT] = 0
         for j in range(n_disjunctions):
-            let r = random.random_ui64(0, 0xFFFF_FFFF).cast[DT]() % n_bits
+            var r = random.random_ui64(0, 0xFFFF_FFFF).cast[DT]() % n_bits
             conjunction |= 1 << r
-        cnf1.push_back(conjunction)
+        cnf1.append(conjunction)
 
     @parameter
     if not QUIET:
@@ -57,7 +56,9 @@ fn cnf2dnf_bigtest_2[QUIET: Bool]():
 
     alias EARLY_PRUNE = True
     alias SHOW_INFO = False
-    let dnf1 = convert_cnf_to_dnf_minimal[DT, EARLY_PRUNE, SHOW_INFO](cnf1, n_bits)
+    var dnf1 = convert_cnf_to_dnf_minimal[DT, EARLY_PRUNE, SHOW_INFO](
+        cnf1, n_bits
+    )
 
     @parameter
     if not QUIET:
@@ -70,19 +71,19 @@ fn cnf2dnf_bigtest_3[QUIET: Bool = False]():
     alias n_conjunctions = 10
     alias n_disjunctions = 8
 
-    var cnf1 = DynamicVector[SIMD[DT, 1]]()
+    var cnf1 = List[Scalar[DT]]()
     for i in range(n_conjunctions):
-        var conjunction: SIMD[DT, 1] = 0
+        var conjunction: Scalar[DT] = 0
         for j in range(n_disjunctions):
-            let r = random.random_ui64(0, 0xFFFF_FFFF).cast[DT]() % n_bits
+            var r = random.random_ui64(0, 0xFFFF_FFFF).cast[DT]() % n_bits
             conjunction |= 1 << r
-        cnf1.push_back(conjunction)
+        cnf1.append(conjunction)
 
     if not QUIET:
         print("CNF = " + cnf_to_string[DT](cnf1))
 
-    # let dnf1 = convert_cnf_to_dnf[DT, True](cnf1, n_bits)
-    let dnf1 = convert_cnf_to_dnf_minimal[DT, True, False](cnf1, n_bits)
+    # var dnf1 = convert_cnf_to_dnf[DT, True](cnf1, n_bits)
+    var dnf1 = convert_cnf_to_dnf_minimal[DT, True, False](cnf1, n_bits)
 
     if not QUIET:
         print("DNF = " + dnf_to_string[DT](dnf1))
@@ -93,42 +94,42 @@ fn cnf2dnf_bigtest_4[QUIET: Bool = False]():
     alias DT = DType.uint64
     alias n_bits = 64
 
-    var cnf1 = DynamicVector[SIMD[DT, 1]]()
-    cnf1.push_back(1 << 0 | 1 << 1 | 1 << 2 | 1 << 3)
-    cnf1.push_back(1 << 4 | 1 << 5 | 1 << 6 | 1 << 7)
-    cnf1.push_back(1 << 3 | 1 << 7 | 1 << 11)
-    cnf1.push_back(1 << 8 | 1 << 9 | 1 << 10 | 1 << 11)
-    cnf1.push_back(1 << 12 | 1 << 13 | 1 << 14 | 1 << 15)
-    cnf1.push_back(1 << 2 | 1 << 15 | 1 << 19)
-    cnf1.push_back(1 << 16 | 1 << 17 | 1 << 18 | 1 << 19)
-    cnf1.push_back(1 << 10 | 1 << 18 | 1 << 22)
-    cnf1.push_back(1 << 6 | 1 << 14 | 1 << 23)
-    cnf1.push_back(1 << 20 | 1 << 21 | 1 << 22 | 1 << 23)
-    cnf1.push_back(1 << 24 | 1 << 25 | 1 << 26 | 1 << 27)
-    cnf1.push_back(1 << 1 | 1 << 27 | 1 << 31)
-    cnf1.push_back(1 << 28 | 1 << 29 | 1 << 30 | 1 << 31)
-    cnf1.push_back(1 << 9 | 1 << 30 | 1 << 34)
-    cnf1.push_back(1 << 5 | 1 << 26 | 1 << 35)
-    cnf1.push_back(1 << 32 | 1 << 33 | 1 << 34 | 1 << 35)
-    cnf1.push_back(1 << 21 | 1 << 33 | 1 << 37)
-    cnf1.push_back(1 << 17 | 1 << 29 | 1 << 38)
-    cnf1.push_back(1 << 13 | 1 << 25 | 1 << 39)
-    cnf1.push_back(1 << 36 | 1 << 37 | 1 << 38 | 1 << 39)
-    cnf1.push_back(1 << 40 | 1 << 41 | 1 << 42 | 1 << 43)
-    cnf1.push_back(1 << 0 | 1 << 43 | 1 << 47)
-    cnf1.push_back(1 << 44 | 1 << 45 | 1 << 46 | 1 << 47)
-    cnf1.push_back(1 << 8 | 1 << 46 | 1 << 50)
-    cnf1.push_back(1 << 4 | 1 << 42 | 1 << 51)
-    cnf1.push_back(1 << 48 | 1 << 49 | 1 << 50 | 1 << 51)
-    cnf1.push_back(1 << 20 | 1 << 49 | 1 << 53)
-    cnf1.push_back(1 << 16 | 1 << 45 | 1 << 54)
-    cnf1.push_back(1 << 12 | 1 << 41 | 1 << 55)
-    cnf1.push_back(1 << 52 | 1 << 53 | 1 << 54 | 1 << 55)
-    cnf1.push_back(1 << 36 | 1 << 52 | 1 << 56)
-    cnf1.push_back(1 << 32 | 1 << 48 | 1 << 57)
-    cnf1.push_back(1 << 28 | 1 << 44 | 1 << 58)
-    cnf1.push_back(1 << 24 | 1 << 40 | 1 << 59)
-    cnf1.push_back(1 << 56 | 1 << 57 | 1 << 58 | 1 << 59)
+    var cnf1 = List[Scalar[DT]]()
+    cnf1.append(1 << 0 | 1 << 1 | 1 << 2 | 1 << 3)
+    cnf1.append(1 << 4 | 1 << 5 | 1 << 6 | 1 << 7)
+    cnf1.append(1 << 3 | 1 << 7 | 1 << 11)
+    cnf1.append(1 << 8 | 1 << 9 | 1 << 10 | 1 << 11)
+    cnf1.append(1 << 12 | 1 << 13 | 1 << 14 | 1 << 15)
+    cnf1.append(1 << 2 | 1 << 15 | 1 << 19)
+    cnf1.append(1 << 16 | 1 << 17 | 1 << 18 | 1 << 19)
+    cnf1.append(1 << 10 | 1 << 18 | 1 << 22)
+    cnf1.append(1 << 6 | 1 << 14 | 1 << 23)
+    cnf1.append(1 << 20 | 1 << 21 | 1 << 22 | 1 << 23)
+    cnf1.append(1 << 24 | 1 << 25 | 1 << 26 | 1 << 27)
+    cnf1.append(1 << 1 | 1 << 27 | 1 << 31)
+    cnf1.append(1 << 28 | 1 << 29 | 1 << 30 | 1 << 31)
+    cnf1.append(1 << 9 | 1 << 30 | 1 << 34)
+    cnf1.append(1 << 5 | 1 << 26 | 1 << 35)
+    cnf1.append(1 << 32 | 1 << 33 | 1 << 34 | 1 << 35)
+    cnf1.append(1 << 21 | 1 << 33 | 1 << 37)
+    cnf1.append(1 << 17 | 1 << 29 | 1 << 38)
+    cnf1.append(1 << 13 | 1 << 25 | 1 << 39)
+    cnf1.append(1 << 36 | 1 << 37 | 1 << 38 | 1 << 39)
+    cnf1.append(1 << 40 | 1 << 41 | 1 << 42 | 1 << 43)
+    cnf1.append(1 << 0 | 1 << 43 | 1 << 47)
+    cnf1.append(1 << 44 | 1 << 45 | 1 << 46 | 1 << 47)
+    cnf1.append(1 << 8 | 1 << 46 | 1 << 50)
+    cnf1.append(1 << 4 | 1 << 42 | 1 << 51)
+    cnf1.append(1 << 48 | 1 << 49 | 1 << 50 | 1 << 51)
+    cnf1.append(1 << 20 | 1 << 49 | 1 << 53)
+    cnf1.append(1 << 16 | 1 << 45 | 1 << 54)
+    cnf1.append(1 << 12 | 1 << 41 | 1 << 55)
+    cnf1.append(1 << 52 | 1 << 53 | 1 << 54 | 1 << 55)
+    cnf1.append(1 << 36 | 1 << 52 | 1 << 56)
+    cnf1.append(1 << 32 | 1 << 48 | 1 << 57)
+    cnf1.append(1 << 28 | 1 << 44 | 1 << 58)
+    cnf1.append(1 << 24 | 1 << 40 | 1 << 59)
+    cnf1.append(1 << 56 | 1 << 57 | 1 << 58 | 1 << 59)
 
     # CNF = (0 | 1 | 2 | 3) & (4 | 5 | 6 | 7) & (3 | 7 | 11) & (8 | 9 | 10 | 11) & (12 | 13 | 14 | 15) & (2 | 15 | 19) & (16 | 17 | 18 | 19) & (10 | 18 | 22) & (6 | 14 | 23) & (20 | 21 | 22 | 23) & (24 | 25 | 26 | 27) & (1 | 27 | 31) & (28 | 29 | 30 | 31) & (9 | 30 | 34) & (5 | 26 | 35) & (32 | 33 | 34 | 35) & (21 | 33 | 37) & (17 | 29 | 38) & (13 | 25 | 39) & (36 | 37 | 38 | 39) & (40 | 41 | 42 | 43) & (0 | 43 | 47) & (44 | 45 | 46 | 47) & (8 | 46 | 50) & (4 | 42 | 51) & (48 | 49 | 50 | 51) & (20 | 49 | 53) & (16 | 45 | 54) & (12 | 41 | 55) & (52 | 53 | 54 | 55) & (36 | 52 | 56) & (32 | 48 | 57) & (28 | 44 | 58) & (24 | 40 | 59) & (56 | 57 | 58 | 59)
 
@@ -158,14 +159,16 @@ fn cnf2dnf_bigtest_4[QUIET: Bool = False]():
 
     alias EARLY_PRUNE = True
     alias SHOW_INFO = True
-    let dnf1 = convert_cnf_to_dnf_minimal[DT, EARLY_PRUNE, SHOW_INFO](cnf1, n_bits)
+    var dnf1 = convert_cnf_to_dnf_minimal[DT, EARLY_PRUNE, SHOW_INFO](
+        cnf1, n_bits
+    )
 
     @parameter
     if not QUIET:
         print("DNF = " + dnf_to_string[DT](dnf1))
 
-fn test_static_compress():
 
+fn test_static_compress():
     alias implicants = VariadicList(
         0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13
     )  # example needs Petricks method; has no primary essential prime implicants
@@ -174,7 +177,7 @@ fn test_static_compress():
     print("TT1 = " + TT1.pretty_print_blif())
 
     # static compression fails v0.7.0
-    # /__w/modular/modular/Kernels/mojo/stdlib/algorithm/sort.mojo:231:1: note:                     failed to interpret function @$stdlib::$algorithm::$sort::sort[$stdlib::$builtin::$dtype::DType]($stdlib::$collections::$vector::DynamicVector[$stdlib::$builtin::$simd::SIMD[*(0,0), {1}]]&),_231x9_type=ui8
+    # /__w/modular/modular/Kernels/mojo/stdlib/algorithm/sort.mojo:231:1: note:                     failed to interpret function @$stdlib::$algorithm::$sort::sort[$stdlib::$builtin::$dtype::DType]($stdlib::$collections::$vector::List[$stdlib::$builtin::$simd::SIMD[*(0,0), {1}]]&),_231x9_type=ui8
     # /__w/modular/modular/Kernels/mojo/stdlib/algorithm/sort.mojo:244:15: note:                       failed to evaluate call
     # /__w/modular/modular/Kernels/mojo/stdlib/algorithm/sort.mojo:198:1: note:                         failed to interpret function @$stdlib::$algorithm::$sort::sort[$stdlib::$builtin::$dtype::DType]($stdlib::$memory::$unsafe::Pointer[$stdlib::$builtin::$simd::SIMD[*(0,0), {1}], {{0}}]&,$stdlib::$builtin::$int::Int),_198x9_type=ui8
     # /__w/modular/modular/Kernels/mojo/stdlib/algorithm/sort.mojo:215:47: note:                           failed to evaluate call
@@ -187,26 +190,28 @@ fn test_static_compress():
     # alias TT2 = TruthTable[4](implicants, compress=True)
     # print("TT2 = " + TT2.pretty_print_blif())
 
+
 fn main():
-    let start_time_ns = now()
+    var start_time_ns = now()
 
     run_all_unit_tests[QUIET=True]()
-    test_compress_decompress(n_tests=2000)
+    test_compress_decompress(n_tests=2000)  # crash
 
-    #test_static_compress()
+    # test_static_compress() # crashes if you uncomment the static code...
 
-    #cnf2dnf_bigtest_1[False]() # 3 seconds
-    #cnf2dnf_bigtest_2[False]() # 2.6 seconds
-    #cnf2dnf_bigtest_3[False]() # 0.006 seconds
-    #cnf2dnf_bigtest_4[False]() # impossible large! eons
- 
+    # cnf2dnf_bigtest_1[False]() # 2 seconds
+    # cnf2dnf_bigtest_2[False]() # 2.6 seconds
+    # cnf2dnf_bigtest_3[False]() # 0.006 seconds
+    # cnf2dnf_bigtest_4[False]() # impossible large! eons
+
+    # NOTE benchmark was removed from the language
     # benchmark.run[cnf2dnf_bigtest_1[True]]().print()
     # benchmark.run[cnf2dnf_bigtest_2[True]]().print()
     # benchmark.run[cnf2dnf_bigtest_3[True]]().print()
 
-    let elapsed_time_ns = now() - start_time_ns
-    print_no_newline("Elapsed time " + str(elapsed_time_ns) + " ns")
-    print_no_newline(" = " + str(Float32(elapsed_time_ns) / 1_000) + " μs")
-    print_no_newline(" = " + str(Float32(elapsed_time_ns) / 1_000_000) + " ms")
-    print_no_newline(" = " + str(Float32(elapsed_time_ns) / 1_000_000_000) + " s")
-    print_no_newline(" = " + str(Float32(elapsed_time_ns) / 60_000_000_000) + " min\n")
+    var elapsed_time_ns = now() - start_time_ns
+    print("Elapsed time " + str(elapsed_time_ns) + " ns", end="")
+    print(" = " + str(Float32(elapsed_time_ns) / 1_000) + " μs", end="")
+    print(" = " + str(Float32(elapsed_time_ns) / 1_000_000) + " ms", end="")
+    print(" = " + str(Float32(elapsed_time_ns) / 1_000_000_000) + " s", end="")
+    print(" = " + str(Float32(elapsed_time_ns) / 60_000_000_000) + " min")
